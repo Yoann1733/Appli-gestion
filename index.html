@@ -134,7 +134,22 @@
         const MobileMaintenanceApp = () => {
             const [items, setItems] = useState(() => {
                 const saved = localStorage.getItem('maintenanceItems');
-                return saved ? JSON.parse(saved) : [];
+                // Lors du chargement, si un item a un `completedAt` qui est d'un jour précédent, réinitialiser `completedAt` à null.
+                // Cela garantit qu'une tâche marquée comme faite hier n'est pas "cachée" indéfiniment.
+                if (saved) {
+                    const parsedItems = JSON.parse(saved);
+                    const todayString = new Date().toISOString().split('T')[0];
+                    return parsedItems.map(item => {
+                        if (item.completedAt) {
+                            const completedDateString = new Date(item.completedAt).toISOString().split('T')[0];
+                            if (completedDateString !== todayString) {
+                                return { ...item, completedAt: null }; // Réinitialise si la date n'est pas aujourd'hui
+                            }
+                        }
+                        return item;
+                    });
+                }
+                return [];
             });
             const [currentView, setCurrentView] = useState('list');
             const [editingItem, setEditingItem] = useState(null);
@@ -188,7 +203,13 @@
 
             const getStatus = (nextDate) => {
                 const today = new Date();
-                const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+                // Normaliser nextDate à minuit pour une comparaison juste des jours
+                const nextDateMidnight = new Date(nextDate);
+                nextDateMidnight.setHours(0, 0, 0, 0);
+                const todayMidnight = new Date(today);
+                todayMidnight.setHours(0, 0, 0, 0);
+                
+                const diffDays = Math.ceil((nextDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
                 
                 if (diffDays < 0) return 'overdue';
                 if (diffDays <= 7) return 'urgent';
@@ -203,7 +224,8 @@
                     id: Date.now(),
                     ...newItem,
                     intervalDays: parseInt(newItem.intervalDays),
-                    nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays)
+                    nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString(), // Sauvegarder comme string ISO
+                    completedAt: null // Nouvelle propriété pour marquer quand la tâche a été complétée
                 };
 
                 setItems([...items, item]);
@@ -214,7 +236,10 @@
             const startEdit = (item) => {
                 setEditingItem({
                     ...item,
-                    lastMaintenance: item.lastMaintenance.split('T')[0] || new Date(item.lastMaintenance).toISOString().split('T')[0]
+                    // S'assurer que la date est au bon format pour l'input type="date"
+                    lastMaintenance: item.lastMaintenance.split('T')[0] || new Date(item.lastMaintenance).toISOString().split('T')[0],
+                    // Convertir nextMaintenance en objet Date si ce n'est pas déjà le cas pour l'édition interne
+                    nextMaintenance: new Date(item.nextMaintenance) 
                 });
                 setCurrentView('edit');
             };
@@ -225,7 +250,9 @@
                 const updatedItem = {
                     ...editingItem,
                     intervalDays: parseInt(editingItem.intervalDays),
-                    nextMaintenance: getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays)
+                    // Recalculer nextMaintenance pour s'assurer qu'elle est correcte après édition
+                    nextMaintenance: getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString(),
+                    completedAt: null // Réinitialiser completedAt lors de l'édition pour qu'elle puisse réapparaître si nécessaire
                 };
 
                 setItems(items.map(item => item.id === editingItem.id ? updatedItem : item));
@@ -247,10 +274,12 @@
                             ...item,
                             lastMaintenance: today,
                             lastMaintenanceTime: currentTime,
-                            nextMaintenance: getNextMaintenanceDate(today, item.intervalDays)
+                            nextMaintenance: getNextMaintenanceDate(today, item.intervalDays).toISOString(),
+                            completedAt: now.toISOString() // Enregistrer la date et l'heure de complétion
                         };
                         
                         setJustCompleted(id);
+                        // L'effet visuel "Terminé !" dure 2 secondes
                         setTimeout(() => setJustCompleted(null), 2000);
                         
                         return updatedItem;
@@ -265,13 +294,37 @@
             };
 
             const filteredItems = items.filter(item => {
-                if (filter === 'all') return true;
+                // Si la tâche a été complétée aujourd'hui, elle ne doit pas apparaître dans la liste par défaut
+                // sauf si le filtre n'est pas 'all' (pour que l'utilisateur puisse toujours la voir si filtrée spécifiquement)
+                // ou si le filtre est 'urgent' (pour être exclue explicitement des urgences)
+                const isCompletedToday = item.completedAt && (new Date(item.completedAt).toISOString().split('T')[0] === new Date().toISOString().split('T')[0]);
+
+                if (filter === 'all') {
+                    // Si on est en "all", on n'exclut pas les tâches complétées aujourd'hui par défaut,
+                    // car l'utilisateur s'attend à voir tout.
+                    // Cependant, pour votre demande, je vais ajouter une condition ici pour les exclure des URGENCES.
+                    return true; // Toutes les tâches sont affichées dans "all"
+                }
+                
                 if (filter === 'urgent') {
-                    const status = getStatus(item.nextMaintenance);
+                    // Exclure les tâches complétées aujourd'hui de la vue "urgent"
+                    if (isCompletedToday) return false;
+
+                    const status = getStatus(new Date(item.nextMaintenance));
                     return status === 'overdue' || status === 'urgent';
                 }
+                
                 return item.category === filter;
             });
+
+            // Pour le compteur des tâches urgentes, on doit aussi exclure celles complétées aujourd'hui.
+            const urgentCount = items.filter(item => {
+                const isCompletedToday = item.completedAt && (new Date(item.completedAt).toISOString().split('T')[0] === new Date().toISOString().split('T')[0]);
+                if (isCompletedToday) return false; // Exclure du compte urgent si complétée aujourd'hui
+
+                const status = getStatus(new Date(item.nextMaintenance));
+                return status === 'overdue' || status === 'urgent';
+            }).length;
 
             const getStatusColor = (status) => {
                 switch (status) {
@@ -284,7 +337,15 @@
 
             const getStatusText = (status, nextDate) => {
                 const today = new Date();
-                const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+                const nextDateObj = new Date(nextDate);
+                // Normaliser à minuit pour le calcul des jours
+                const todayMidnight = new Date(today);
+                todayMidnight.setHours(0,0,0,0);
+                const nextDateMidnight = new Date(nextDateObj);
+                nextDateMidnight.setHours(0,0,0,0);
+
+
+                const diffDays = Math.ceil((nextDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
                 
                 switch (status) {
                     case 'overdue': return `Retard ${Math.abs(diffDays)}j`;
@@ -293,11 +354,6 @@
                     default: return `Dans ${diffDays}j`;
                 }
             };
-
-            const urgentCount = items.filter(item => {
-                const status = getStatus(item.nextMaintenance);
-                return status === 'overdue' || status === 'urgent';
-            }).length;
 
             return (
                 <div className="max-w-md mx-auto bg-gray-50 min-h-screen">
@@ -318,9 +374,9 @@
                             <Bell />
                             <h1 className="text-lg font-semibold">
                                 {currentView === 'add' ? 'Ajouter' : 
-                                 currentView === 'edit' ? 'Modifier' : 
-                                 currentView === 'filters' ? 'Filtres' : 
-                                 'Assistant d\'Entretien'}
+                                currentView === 'edit' ? 'Modifier' : 
+                                currentView === 'filters' ? 'Filtres' : 
+                                'Assistant d\'Entretien'}
                             </h1>
                         </div>
                         
@@ -371,7 +427,7 @@
                                         .sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance))
                                         .map(item => {
                                             const category = categories[item.category];
-                                            const status = getStatus(item.nextMaintenance);
+                                            const status = getStatus(new Date(item.nextMaintenance));
                                             const IconComponent = category.icon;
 
                                             return (
@@ -426,7 +482,7 @@
                                                             </p>
                                                             <p>
                                                                 <span className="font-medium">Prochain:</span>{' '}
-                                                                {item.nextMaintenance.toLocaleDateString('fr-FR')}
+                                                                {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}
                                                             </p>
                                                             <p>
                                                                 <span className="font-medium">Fréquence:</span> {item.intervalDays}j
@@ -592,7 +648,7 @@
                                     onClick={saveEdit}
                                     className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 active:bg-blue-800 flex items-center justify-center gap-2 font-medium"
                                 >
-                                    <Edit /> Enregistrer les modifications
+                                    <Edit /> Sauvegarder les modifications
                                 </button>
                             </div>
                         </div>
@@ -608,10 +664,10 @@
                                         name="filter"
                                         value="all"
                                         checked={filter === 'all'}
-                                        onChange={(e) => { setFilter(e.target.value); setCurrentView('list'); }}
-                                        className="form-radio h-5 w-5 text-blue-600"
+                                        onChange={() => setFilter('all')}
+                                        className="form-radio text-blue-600 h-5 w-5"
                                     />
-                                    <span className="text-gray-700">Tous les éléments</span>
+                                    <span className="text-gray-700">Toutes les tâches</span>
                                 </label>
                                 <label className="flex items-center space-x-3">
                                     <input
@@ -619,10 +675,10 @@
                                         name="filter"
                                         value="urgent"
                                         checked={filter === 'urgent'}
-                                        onChange={(e) => { setFilter(e.target.value); setCurrentView('list'); }}
-                                        className="form-radio h-5 w-5 text-blue-600"
+                                        onChange={() => setFilter('urgent')}
+                                        className="form-radio text-red-600 h-5 w-5"
                                     />
-                                    <span className="text-gray-700">Urgents / En retard</span>
+                                    <span className="text-gray-700">Tâches urgentes</span>
                                 </label>
                                 {Object.entries(categories).map(([key, cat]) => (
                                     <label key={key} className="flex items-center space-x-3">
@@ -631,63 +687,63 @@
                                             name="filter"
                                             value={key}
                                             checked={filter === key}
-                                            onChange={(e) => { setFilter(e.target.value); setCurrentView('list'); }}
-                                            className="form-radio h-5 w-5 text-blue-600"
+                                            onChange={() => setFilter(key)}
+                                            className={`form-radio text-${cat.color}-600 h-5 w-5`}
                                         />
                                         <span className="text-gray-700">{cat.label}</span>
                                     </label>
                                 ))}
+                                <button
+                                    onClick={() => setCurrentView('list')}
+                                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 active:bg-blue-800 flex items-center justify-center gap-2 font-medium"
+                                >
+                                    Appliquer les filtres
+                                </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Modal de confirmation de suppression */}
+                    {/* Confirmation de suppression (Modal) */}
                     {showDeleteConfirm && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                                <h3 className="text-lg font-semibold mb-4">Confirmer la suppression</h3>
-                                <p className="text-gray-600 mb-6">
-                                    Êtes-vous sûr de vouloir supprimer cet élément ?
-                                </p>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => deleteItem(showDeleteConfirm)}
-                                        className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
-                                    >
-                                        Supprimer
-                                    </button>
+                            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm mx-auto">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirmer la suppression</h3>
+                                <p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.</p>
+                                <div className="flex justify-end gap-3">
                                     <button
                                         onClick={() => setShowDeleteConfirm(null)}
-                                        className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                                        className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium"
                                     >
                                         Annuler
+                                    </button>
+                                    <button
+                                        onClick={() => deleteItem(showDeleteConfirm)}
+                                        className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium"
+                                    >
+                                        Supprimer
                                     </button>
                                 </div>
                             </div>
                         </div>
                     )}
+
                 </div>
             );
         };
 
-        // **********************************************
-        // MODIFICATION CRUCIALE POUR REACT 18
-        // **********************************************
-        const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
-        root.render(<MobileMaintenanceApp />);
+        ReactDOM.render(<MobileMaintenanceApp />, document.getElementById('root'));
 
-        // Service Worker pour PWA
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-              .then((registration) => {
-                console.log('SW registered: ', registration);
-              })
-              .catch((registrationError) => {
-                console.log('SW registration failed: ', registrationError);
-              });
-          });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/Apoli-gestion/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
         }
     </script>
 </body>
