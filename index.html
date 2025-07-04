@@ -1,444 +1,433 @@
-<script type="text/babel">
-    const { useState, useEffect } = React;
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistant d'Entretien</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="icon-16.png" sizes="16x16">
 
-    // --- Icônes (inchangées) ---
-    const Bell = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m13.73 21a2 2 0 0 1-3.46 0"/></svg>);
-    const Plus = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-7-7v14"/></svg>);
-    const ArrowLeft = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
-    const Filter = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>);
-    const Wrench = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>);
-    const Car = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18.4 10c-.4-.8-1.2-1.3-2.1-1.3H7.7c-.9 0-1.7.5-2.1 1.3L3.5 11.1C2.7 11.3 2 12.1 2 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>);
-    const Flower = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V9a3 3 0 0 0 3 3h1.5M12 7.5V9a3 3 0 0 1-3 3H7.5"/><path d="M12 16.5V21"/><path d="M8 18h8"/></svg>);
-    const Home = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>);
-    const History = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 8v4l3 3"/><path d="M22 12c0 2.76-2.24 5-5 5H4.27a2 2 0 0 1-1.27-.42L.5 14.5M2 12C2 9.24 4.24 7 7 7h12.73a2 2 0 0 1 1.27.42L23.5 9.5"/></svg>);
-    const CheckCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>);
-    const Clock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>);
-    const AlertTriangle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17.02.01 0"/></svg>);
-    const Edit = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>);
-    const Trash2 = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>);
-    const CalendarClock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M18 14a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M18 16.5V18"/></svg>);
-    const Bath = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6 9H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-2l-3-3"/><path d="M8 22v-3"/><path d="M12 22v-3"/><path d="M16 22v-3"/><path d="m8.5 4 1-2 1 2"/></svg>);
-    const Bed = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16h20V4Z"/><path d="M2 12h20"/><path d="M2 8h20"/><path d="M10 4v8"/></svg>);
-    const Utensils = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Z"/></svg>);
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input, select, textarea { font-size: 16px !important; }
+        body { margin: 0; padding: 0; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+        .no-select { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    const MobileMaintenanceApp = () => {
-        const [items, setItems] = useState(() => {
-            const saved = localStorage.getItem('maintenanceItems');
-            return saved ? JSON.parse(saved) : [];
-        });
-        
-        const [currentView, setCurrentView] = useState('today'); // 'today', 'upcoming', 'history', 'add', 'edit', 'filters'
-        const [editingItem, setEditingItem] = useState(null);
-        const [filter, setFilter] = useState('all');
-        const [justCompleted, setJustCompleted] = useState(null);
-        const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+        // --- Icônes ---
+        const Bell = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m13.73 21a2 2 0 0 1-3.46 0"/></svg>);
+        const Plus = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-7-7v14"/></svg>);
+        const ArrowLeft = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
+        const Filter = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>);
+        const Wrench = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>);
+        const Car = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18.4 10c-.4-.8-1.2-1.3-2.1-1.3H7.7c-.9 0-1.7.5-2.1 1.3L3.5 11.1C2.7 11.3 2 12.1 2 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>);
+        const Flower = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V9a3 3 0 0 0 3 3h1.5M12 7.5V9a3 3 0 0 1-3 3H7.5"/><path d="M12 16.5V21"/><path d="M8 18h8"/></svg>);
+        const Home = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>);
+        const History = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 8v4l3 3"/><path d="M22 12c0 2.76-2.24 5-5 5H4.27a2 2 0 0 1-1.27-.42L.5 14.5M2 12C2 9.24 4.24 7 7 7h12.73a2 2 0 0 1 1.27.42L23.5 9.5"/></svg>);
+        const CheckCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>);
+        const Clock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>);
+        const AlertTriangle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17.02.01 0"/></svg>);
+        const Edit = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>);
+        const Trash2 = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>);
+        const CalendarClock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M18 14a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M18 16.5V18"/></svg>);
+        const Bath = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6 9H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-2l-3-3"/><path d="M8 22v-3"/><path d="M12 22v-3"/><path d="M16 22v-3"/><path d="m8.5 4 1-2 1 2"/></svg>);
+        const Bed = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16h20V4Z"/><path d="M2 12h20"/><path d="M2 8h20"/><path d="M10 4v8"/></svg>);
+        const Utensils = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Z"/></svg>);
 
-        useEffect(() => {
-            localStorage.setItem('maintenanceItems', JSON.stringify(items));
-        }, [items]);
-
-        const categories = {
-            voiture: { icon: Car, label: 'Voiture', bgClass: 'bg-green-100', textClass: 'text-green-600' },
-            electromenager: { icon: Wrench, label: 'Électroménager', bgClass: 'bg-blue-100', textClass: 'text-blue-600' },
-            maison: { icon: Home, label: 'Maison', bgClass: 'bg-purple-100', textClass: 'text-purple-600' },
-            jardin: { icon: Flower, label: 'Jardin', bgClass: 'bg-emerald-100', textClass: 'text-emerald-600' },
-            cuisine: { icon: Utensils, label: 'Cuisine', bgClass: 'bg-pink-100', textClass: 'text-pink-600' },
-            sdb: { icon: Bath, label: 'Salle de bain', bgClass: 'bg-cyan-100', textClass: 'text-cyan-600' },
-            chambre: { icon: Bed, label: 'Chambre', bgClass: 'bg-indigo-100', textClass: 'text-indigo-600' },
-            autres: { icon: Bell, label: 'Autres', bgClass: 'bg-gray-100', textClass: 'text-gray-600' },
-        };
-
-        const [newItem, setNewItem] = useState({
-            name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: ''
-        });
-
-        const getNextMaintenanceDate = (lastDate, intervalDays) => {
-            const last = new Date(lastDate);
-            const next = new Date(last);
-            next.setDate(last.getDate() + parseInt(intervalDays));
-            return next;
-        };
-
-        const getStatus = (nextDate) => {
-            const today = new Date();
-            const nextDateMidnight = new Date(nextDate);
-            nextDateMidnight.setHours(0, 0, 0, 0);
-            const todayMidnight = new Date(today);
-            todayMidnight.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((nextDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0) return 'overdue';
-            if (diffDays <= 7) return 'urgent';
-            if (diffDays <= 30) return 'soon';
-            return 'ok';
-        };
-
-        const addItem = () => {
-            if (!newItem.name || !newItem.lastMaintenance || !newItem.intervalDays) return;
-            const item = {
-                id: Date.now(), ...newItem, intervalDays: parseInt(newItem.intervalDays),
-                nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString(),
-                completedAt: null
-            };
-            setItems([...items, item]);
-            setNewItem({ name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: '' });
-            setCurrentView('today');
-        };
-
-        const startEdit = (item) => {
-            setEditingItem({ ...item, lastMaintenance: new Date(item.lastMaintenance).toISOString().split('T')[0] });
-            setCurrentView('edit');
-        };
-
-        const saveEdit = () => {
-            if (!editingItem.name || !editingItem.lastMaintenance || !editingItem.intervalDays) return;
-            const updatedItem = {
-                ...editingItem,
-                intervalDays: parseInt(editingItem.intervalDays),
-                nextMaintenance: getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString(),
-            };
-            setItems(items.map(item => item.id === editingItem.id ? updatedItem : item));
-            setEditingItem(null);
-            setCurrentView('today');
-        };
-
-        const markAsDone = (id) => {
-            setItems(items.map(item => {
-                if (item.id === id) {
-                    const now = new Date();
-                    const today = now.toISOString().split('T')[0];
-                    const updatedItem = { ...item, lastMaintenance: today, nextMaintenance: getNextMaintenanceDate(today, item.intervalDays).toISOString(), completedAt: now.toISOString() };
-                    setJustCompleted(id);
-                    setTimeout(() => setJustCompleted(null), 2000);
-                    return updatedItem;
-                }
-                return item;
-            }));
-        };
-
-        const deleteItem = (id) => {
-            setItems(items.filter(item => item.id !== id));
-            setShowDeleteConfirm(null);
-        };
-        
-        const getStatusColor = (status) => {
-             switch (status) {
-                case 'overdue': return 'text-red-600 bg-red-50 border-red-200';
-                case 'urgent': return 'text-orange-600 bg-orange-50 border-orange-200';
-                case 'soon': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-                default: return 'text-green-600 bg-green-50 border-green-200';
-            }
-        };
-
-        const getStatusText = (status, nextDate) => {
-            const today = new Date();
-            const nextDateObj = new Date(nextDate);
-            const todayMidnight = new Date(today);
-            todayMidnight.setHours(0,0,0,0);
-            const nextDateMidnight = new Date(nextDateObj);
-            nextDateMidnight.setHours(0,0,0,0);
-            const diffDays = Math.ceil((nextDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+        const MobileMaintenanceApp = () => {
+            const [items, setItems] = useState(() => {
+                const saved = localStorage.getItem('maintenanceItems');
+                return saved ? JSON.parse(saved) : [];
+            });
             
-            switch (status) {
-                case 'overdue': return `Retard ${Math.abs(diffDays)}j`;
-                default: return `Dans ${diffDays}j`;
-            }
-        };
+            const [currentView, setCurrentView] = useState('today');
+            const [editingItem, setEditingItem] = useState(null);
+            const [filter, setFilter] = useState('all');
+            const [justCompleted, setJustCompleted] = useState(null);
+            const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
-        const todayString = new Date().toISOString().split('T')[0];
-        const todayDate = new Date();
-        todayDate.setHours(0,0,0,0);
+            useEffect(() => {
+                localStorage.setItem('maintenanceItems', JSON.stringify(items));
+            }, [items]);
 
-        const applyFilter = (item) => {
-            if (filter === 'all') return true;
-            if (filter === 'urgent') {
+            const categories = {
+                voiture: { icon: Car, label: 'Voiture', bgClass: 'bg-green-100', textClass: 'text-green-600' },
+                electromenager: { icon: Wrench, label: 'Électroménager', bgClass: 'bg-blue-100', textClass: 'text-blue-600' },
+                maison: { icon: Home, label: 'Maison', bgClass: 'bg-purple-100', textClass: 'text-purple-600' },
+                jardin: { icon: Flower, label: 'Jardin', bgClass: 'bg-emerald-100', textClass: 'text-emerald-600' },
+                cuisine: { icon: Utensils, label: 'Cuisine', bgClass: 'bg-pink-100', textClass: 'text-pink-600' },
+                sdb: { icon: Bath, label: 'Salle de bain', bgClass: 'bg-cyan-100', textClass: 'text-cyan-600' },
+                chambre: { icon: Bed, label: 'Chambre', bgClass: 'bg-indigo-100', textClass: 'text-indigo-600' },
+                autres: { icon: Bell, label: 'Autres', bgClass: 'bg-gray-100', textClass: 'text-gray-600' },
+            };
+
+            const [newItem, setNewItem] = useState({
+                name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: ''
+            });
+
+            const getNextMaintenanceDate = (lastDate, intervalDays) => {
+                const last = new Date(lastDate);
+                const next = new Date(last);
+                next.setDate(last.getDate() + parseInt(intervalDays, 10));
+                return next;
+            };
+
+            const getStatus = (nextDate) => {
+                const today = new Date();
+                const nextDateMidnight = new Date(nextDate);
+                nextDateMidnight.setHours(0, 0, 0, 0);
+                const todayMidnight = new Date(today);
+                todayMidnight.setHours(0, 0, 0, 0);
+                const diffDays = Math.ceil((nextDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) return 'overdue';
+                if (diffDays <= 7) return 'urgent';
+                if (diffDays <= 30) return 'soon';
+                return 'ok';
+            };
+
+            const addItem = () => {
+                if (!newItem.name || !newItem.lastMaintenance || !newItem.intervalDays) return;
+                const item = {
+                    id: Date.now(), ...newItem, intervalDays: parseInt(newItem.intervalDays, 10),
+                    nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString(),
+                    completedAt: null
+                };
+                setItems([...items, item]);
+                setNewItem({ name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: '' });
+                setCurrentView('today');
+            };
+
+            const startEdit = (item) => {
+                setEditingItem({ ...item, lastMaintenance: new Date(item.lastMaintenance).toISOString().split('T')[0] });
+                setCurrentView('edit');
+            };
+
+            const saveEdit = () => {
+                if (!editingItem || !editingItem.name || !editingItem.lastMaintenance || !editingItem.intervalDays) return;
+                const updatedItem = {
+                    ...editingItem,
+                    intervalDays: parseInt(editingItem.intervalDays, 10),
+                    nextMaintenance: getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString(),
+                };
+                setItems(items.map(i => i.id === editingItem.id ? updatedItem : i));
+                setEditingItem(null);
+                setCurrentView('today');
+            };
+
+            const markAsDone = (id) => {
+                setItems(items.map(item => {
+                    if (item.id === id) {
+                        const now = new Date();
+                        const today = now.toISOString().split('T')[0];
+                        const updatedItem = { ...item, lastMaintenance: today, nextMaintenance: getNextMaintenanceDate(today, item.intervalDays).toISOString(), completedAt: now.toISOString() };
+                        setJustCompleted(id);
+                        setTimeout(() => setJustCompleted(null), 2000);
+                        return updatedItem;
+                    }
+                    return item;
+                }));
+            };
+
+            const deleteItem = (id) => {
+                setItems(items.filter(item => item.id !== id));
+                setShowDeleteConfirm(null);
+            };
+            
+            const getStatusColor = (status) => {
+                 switch (status) {
+                    case 'overdue': return 'text-red-600 bg-red-50 border-red-200';
+                    case 'urgent': return 'text-orange-600 bg-orange-50 border-orange-200';
+                    case 'soon': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+                    default: return 'text-green-600 bg-green-50 border-green-200';
+                }
+            };
+
+            const getStatusText = (status, nextDate) => {
+                const today = new Date();
+                const nextDateObj = new Date(nextDate);
+                today.setHours(0,0,0,0);
+                nextDateObj.setHours(0,0,0,0);
+                const diffDays = Math.ceil((nextDateObj - today) / (1000 * 60 * 60 * 24));
+                if (status === 'overdue') return `Retard de ${Math.abs(diffDays)} j`;
+                if (diffDays === 0) return "Aujourd'hui";
+                return `Dans ${diffDays} j`;
+            };
+
+            const todayString = new Date().toISOString().split('T')[0];
+            const todayDate = new Date();
+            todayDate.setHours(0,0,0,0);
+
+            const applyFilter = (item) => {
+                if (filter === 'all') return true;
+                if (filter === 'urgent') {
+                    const status = getStatus(new Date(item.nextMaintenance));
+                    return status === 'overdue' || status === 'urgent';
+                }
+                return item.category === filter;
+            };
+
+            const getVisibleItems = () => {
+                const baseItems = items.filter(item => {
+                    const isCompletedToday = item.completedAt && item.completedAt.startsWith(todayString);
+                    if (currentView === 'history') {
+                        return isCompletedToday;
+                    }
+                    if (isCompletedToday) return false;
+
+                    const nextDate = new Date(item.nextMaintenance);
+                    nextDate.setHours(0,0,0,0);
+
+                    if (currentView === 'today' && nextDate > todayDate) return false;
+                    if (currentView === 'upcoming' && nextDate <= todayDate) return false;
+                    
+                    return applyFilter(item);
+                });
+
+                if (currentView === 'history') {
+                    return baseItems.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+                }
+                return baseItems.sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance));
+            };
+
+            const visibleItems = getVisibleItems();
+
+            const urgentCount = items.filter(item => {
+                const isCompletedToday = item.completedAt && item.completedAt.startsWith(todayString);
+                if (isCompletedToday) return false;
                 const status = getStatus(new Date(item.nextMaintenance));
                 return status === 'overdue' || status === 'urgent';
-            }
-            return item.category === filter;
-        };
+            }).length;
 
-        const todayItems = items.filter(item => {
-            const isCompletedToday = item.completedAt && item.completedAt.startsWith(todayString);
-            if (isCompletedToday) return false;
-            const nextDate = new Date(item.nextMaintenance);
-            nextDate.setHours(0,0,0,0);
-            return nextDate <= todayDate && applyFilter(item);
-        }).sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance));
-
-        const upcomingItems = items.filter(item => {
-            const isCompletedToday = item.completedAt && item.completedAt.startsWith(todayString);
-            if (isCompletedToday) return false;
-            const nextDate = new Date(item.nextMaintenance);
-            nextDate.setHours(0,0,0,0);
-            return nextDate > todayDate && applyFilter(item);
-        }).sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance));
-
-        const historyItems = items.filter(item => item.completedAt && item.completedAt.startsWith(todayString))
-                                 .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
-
-        const urgentCount = items.filter(item => {
-            const isCompletedToday = item.completedAt && item.completedAt.startsWith(todayString);
-            if (isCompletedToday) return false;
-            const status = getStatus(new Date(item.nextMaintenance));
-            return status === 'overdue' || status === 'urgent';
-        }).length;
-
-        // --- Début du rendu JSX ---
-        return (
-            <div className="max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col">
-                <div className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
-                    <div className="flex items-center gap-3">
-                        {['add', 'edit', 'filters'].includes(currentView) && (
-                            <button onClick={() => setCurrentView('today')} className="p-1"><ArrowLeft /></button>
-                        )}
-                        <Bell />
-                        <h1 className="text-lg font-semibold">
-                            {currentView === 'today' ? "À faire aujourd'hui" :
-                             currentView === 'upcoming' ? 'À prévoir' :
-                             currentView === 'history' ? 'Historique du jour' :
-                             currentView === 'add' ? 'Ajouter' : 
-                             currentView === 'edit' ? 'Modifier' : 
-                             currentView === 'filters' ? 'Filtres' :
-                             'Assistant d\'Entretien'}
-                        </h1>
-                    </div>
-                    {(currentView === 'today' || currentView === 'upcoming') && (
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => setCurrentView('filters')} className="p-2 hover:bg-blue-700 rounded-lg relative">
-                                <Filter />
-                                {filter !== 'all' && (<div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>)}
-                            </button>
-                            <button onClick={() => setCurrentView('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button>
+            const NavButton = ({ view, label, icon: Icon }) => (
+                <button onClick={() => setCurrentView(view)} className={`flex flex-col items-center p-2 rounded-lg transition-colors w-1/3 ${currentView === view ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
+                    <Icon className="w-6 h-6" />
+                    <span className="text-xs mt-1">{label}</span>
+                </button>
+            );
+            
+            const PageView = ({ view, items, emptyIcon: EmptyIcon, emptyText, emptySubtext }) => (
+                currentView === view && (
+                    items.length === 0 ? (
+                        <div className="text-center py-12">
+                            <EmptyIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-500 text-lg mb-2">{emptyText}</p>
+                            <p className="text-gray-400">{emptySubtext}</p>
                         </div>
-                    )}
-                </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} /> : <ItemCard key={item.id} item={item} />)}
+                        </div>
+                    )
+                )
+            );
 
-                <div className="flex-grow overflow-y-auto p-4 pb-20">
-                    {(currentView === 'today' || currentView === 'upcoming') && urgentCount > 0 && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                            <div className="flex items-center gap-2 text-red-700">
-                                <AlertTriangle />
-                                <span className="font-medium">{urgentCount} élément{urgentCount > 1 ? 's' : ''} urgent{urgentCount > 1 ? 's' : ''}</span>
+            // --- Rendu JSX principal ---
+            return (
+                <div className="max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col">
+                    <header className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
+                        <div className="flex items-center gap-3">
+                            {['add', 'edit', 'filters'].includes(currentView) && (
+                                <button onClick={() => setCurrentView('today')} className="p-1"><ArrowLeft /></button>
+                            )}
+                            <Bell />
+                            <h1 className="text-lg font-semibold">
+                                {currentView === 'today' ? "À faire aujourd'hui" :
+                                 currentView === 'upcoming' ? 'À prévoir' :
+                                 currentView === 'history' ? 'Historique du jour' :
+                                 currentView === 'add' ? 'Ajouter' : 
+                                 currentView === 'edit' ? 'Modifier' : 
+                                 currentView === 'filters' ? 'Filtres' :
+                                 'Assistant d\'Entretien'}
+                            </h1>
+                        </div>
+                        {(currentView === 'today' || currentView === 'upcoming') && (
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setCurrentView('filters')} className="p-2 hover:bg-blue-700 rounded-lg relative">
+                                    <Filter />
+                                    {filter !== 'all' && (<div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>)}
+                                </button>
+                                <button onClick={() => setCurrentView('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button>
+                            </div>
+                        )}
+                    </header>
+
+                    <main className="flex-grow overflow-y-auto p-4 pb-20">
+                        {(currentView === 'today' || currentView === 'upcoming') && urgentCount > 0 && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center gap-2 text-red-700">
+                                    <AlertTriangle />
+                                    <span className="font-medium">{urgentCount} élément{urgentCount > 1 ? 's' : ''} urgent{urgentCount > 1 ? 's' : ''}</span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <PageView view="today" items={visibleItems} emptyIcon={CheckCircle} emptyText="Rien à faire aujourd'hui !" emptySubtext="Profitez de votre journée."/>
+                        <PageView view="upcoming" items={visibleItems} emptyIcon={Clock} emptyText="Aucune tâche à prévoir." emptySubtext="Ajoutez de nouveaux éléments."/>
+                        <PageView view="history" items={visibleItems} emptyIcon={History} emptyText="Aucune tâche complétée aujourd'hui." emptySubtext="Marquez une tâche comme faite pour la voir ici."/>
+
+                        {currentView === 'add' && <ItemForm key="add" onSubmit={addItem} itemState={newItem} setItemState={setNewItem} title="Ajouter un nouvel élément" buttonText="Ajouter l'élément"/>}
+                        {currentView === 'edit' && editingItem && <ItemForm key="edit" onSubmit={saveEdit} itemState={editingItem} setItemState={setEditingItem} title="Modifier l'élément" buttonText="Enregistrer les modifications"/>}
+                        {currentView === 'filters' && <FilterView />}
+                    </main>
+
+                    {showDeleteConfirm && (
+                        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3>
+                                <p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer "{items.find(item => item.id === showDeleteConfirm)?.name}" ? Cette action est irréversible.</p>
+                                <div className="flex justify-end space-x-3">
+                                    <button onClick={() => setShowDeleteConfirm(null)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-medium">Annuler</button>
+                                    <button onClick={() => deleteItem(showDeleteConfirm)} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">Supprimer</button>
+                                </div>
                             </div>
                         </div>
                     )}
                     
-                    {currentView === 'today' && (
-                        todayItems.length === 0 ? (
-                            <div className="text-center py-12">
-                                <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
-                                <p className="text-gray-500 text-lg mb-2">Rien à faire aujourd'hui !</p>
-                                <p className="text-gray-400">Profitez de votre journée ou préparez les tâches à venir.</p>
-                            </div>
-                        ) : <div className="space-y-4">{todayItems.map(item => <ItemCard key={item.id} item={item} />)}</div>
-                    )}
-
-                    {currentView === 'upcoming' && (
-                        upcomingItems.length === 0 ? (
-                            <div className="text-center py-12">
-                                <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                                <p className="text-gray-500 text-lg mb-2">Aucune tâche à prévoir.</p>
-                                <p className="text-gray-400">Ajoutez de nouveaux éléments pour planifier votre entretien.</p>
-                            </div>
-                        ) : <div className="space-y-4">{upcomingItems.map(item => <ItemCard key={item.id} item={item} />)}</div>
-                    )}
-
-                    {currentView === 'history' && (
-                        historyItems.length === 0 ? (
-                            <div className="text-center py-12">
-                                <History className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                                <p className="text-gray-500 text-lg mb-2">Aucune tâche complétée aujourd'hui.</p>
-                                <p className="text-gray-400">Marquez une tâche comme faite pour la voir ici !</p>
-                            </div>
-                        ) : <div className="space-y-4">{historyItems.map(item => <HistoryCard key={item.id} item={item} />)}</div>
-                    )}
-
-                    {currentView === 'add' && <AddItemForm />}
-                    {currentView === 'edit' && editingItem && <EditItemForm />}
-                    {currentView === 'filters' && <FilterView />}
+                    <footer className="bg-white border-t border-gray-200 p-3 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
+                        <NavButton view="today" label="Aujourd'hui" icon={Home} />
+                        <NavButton view="upcoming" label="À prévoir" icon={CalendarClock} />
+                        <NavButton view="history" label="Historique" icon={History} />
+                    </footer>
                 </div>
+            );
 
-                {showDeleteConfirm && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3>
-                            <p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer "{items.find(item => item.id === showDeleteConfirm)?.name}" ? Cette action est irréversible.</p>
-                            <div className="flex justify-end space-x-3">
-                                <button onClick={() => setShowDeleteConfirm(null)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-medium">Annuler</button>
-                                <button onClick={() => deleteItem(showDeleteConfirm)} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">Supprimer</button>
+            // --- Composants ---
+            
+            const ItemCard = ({ item }) => {
+                const category = categories[item.category] || categories.autres;
+                const status = getStatus(new Date(item.nextMaintenance));
+                return(
+                    <div className={`bg-white rounded-lg shadow-md border-l-4 ${getStatusColor(status).split(' ')[2]} ${justCompleted === item.id ? 'ring-2 ring-green-300' : ''}`}>
+                         <div className="p-4">
+                            <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon /></div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-800 truncate">{item.name}</h3>
+                                        <p className="text-sm text-gray-500">{category.label}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1 ml-2">
+                                    <button onClick={() => startEdit(item)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg"><Edit /></button>
+                                    <button onClick={() => setShowDeleteConfirm(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 /></button>
+                                </div>
                             </div>
-                        </div>
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium mb-3 border ${getStatusColor(status)}`}>
+                                {status === 'overdue' ? <AlertTriangle className="w-4 h-4"/> : <Clock className="w-4 h-4"/>}
+                                {getStatusText(status, item.nextMaintenance)}
+                            </div>
+                            <div className="space-y-1 text-sm text-gray-600 mb-4">
+                                <p><span className="font-medium">Dernier:</span> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>
+                                <p><span className="font-medium">Prochain:</span> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
+                                <p><span className="font-medium">Fréquence:</span> {item.intervalDays}j</p>
+                                {item.notes && <p className="text-xs text-gray-500 pt-1 border-t mt-2"><span className="font-medium">Notes:</span> {item.notes}</p>}
+                            </div>
+                            <button onClick={() => markAsDone(item.id)} className={`w-full px-4 py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium ${justCompleted === item.id ? 'bg-green-700 text-white' : 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800'}`} disabled={justCompleted === item.id}>
+                                <CheckCircle />
+                                {justCompleted === item.id ? 'Terminé !' : 'Marquer comme fait'}
+                            </button>
+                         </div>
                     </div>
-                )}
-                
-                <div className="bg-white border-t border-gray-200 p-3 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
-                    <button onClick={() => setCurrentView('today')} className={`flex flex-col items-center p-2 rounded-lg transition-colors w-1/3 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}><Home className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button>
-                    <button onClick={() => setCurrentView('upcoming')} className={`flex flex-col items-center p-2 rounded-lg transition-colors w-1/3 ${currentView === 'upcoming' ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}><CalendarClock className="w-6 h-6" /><span className="text-xs mt-1">À prévoir</span></button>
-                    <button onClick={() => setCurrentView('history')} className={`flex flex-col items-center p-2 rounded-lg transition-colors w-1/3 ${currentView === 'history' ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}><History className="w-6 h-6" /><span className="text-xs mt-1">Historique</span></button>
-                </div>
-            </div>
-        );
+                )
+            };
 
-        // --- Composants ---
-        
-        const ItemCard = ({ item }) => {
-            const category = categories[item.category] || categories.autres;
-            const status = getStatus(new Date(item.nextMaintenance));
-            return(
-                <div className={`bg-white rounded-lg shadow-md border-l-4 ${status === 'overdue' ? 'border-red-500' : status === 'urgent' ? 'border-orange-500' : status === 'soon' ? 'border-yellow-500' : 'border-green-500'} ${justCompleted === item.id ? 'ring-2 ring-green-300 bg-green-50' : ''}`}>
-                     <div className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3 flex-1">
+            const HistoryCard = ({ item }) => {
+                const category = categories[item.category] || categories.autres;
+                const completedDate = new Date(item.completedAt);
+                return(
+                    <div className="bg-white rounded-lg shadow-md border-l-4 border-green-500">
+                        <div className="p-4">
+                             <div className="flex items-center gap-3 mb-2">
                                 <div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon /></div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="font-semibold text-gray-800 truncate">{item.name}</h3>
+                                <div>
+                                    <h3 className="font-semibold text-gray-800">{item.name}</h3>
                                     <p className="text-sm text-gray-500">{category.label}</p>
                                 </div>
                             </div>
-                            <div className="flex gap-1 ml-2">
-                                <button onClick={() => startEdit(item)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg"><Edit /></button>
-                                <button onClick={() => setShowDeleteConfirm(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 /></button>
-                            </div>
+                            <p className="text-sm text-gray-600 flex items-center gap-1">
+                                <CheckCircle className="w-4 h-4 text-green-600" /> Fait le{' '}
+                                <span className="font-medium">
+                                    {completedDate.toLocaleDateString('fr-FR')}{' '}
+                                    à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </p>
+                            {item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}
                         </div>
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium mb-3 border ${getStatusColor(status)}`}>
-                            {status === 'overdue' ? <AlertTriangle /> : <Clock />}
-                            {getStatusText(status, item.nextMaintenance)}
-                        </div>
-                        <div className="space-y-1 text-sm text-gray-600 mb-4">
-                            <p><span className="font-medium">Dernier:</span> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>
-                            <p><span className="font-medium">Prochain:</span> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
-                            <p><span className="font-medium">Fréquence:</span> {item.intervalDays}j</p>
-                            {item.notes && <p className="text-xs"><span className="font-medium">Notes:</span> {item.notes}</p>}
-                        </div>
-                        <button onClick={() => markAsDone(item.id)} className={`w-full px-4 py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium ${justCompleted === item.id ? 'bg-green-700 text-white' : 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800'}`} disabled={justCompleted === item.id}>
-                            <CheckCircle />
-                            {justCompleted === item.id ? 'Terminé !' : 'Marquer comme fait'}
-                        </button>
-                     </div>
-                </div>
-            )
-        };
-
-        const HistoryCard = ({ item }) => {
-            const category = categories[item.category] || categories.autres;
-            const completedDate = new Date(item.completedAt);
-            return(
-                <div className="bg-white rounded-lg shadow-md border-l-4 border-green-500">
-                    <div className="p-4">
-                         <div className="flex items-center gap-3 mb-2">
-                            <div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon /></div>
-                            <div>
-                                <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                                <p className="text-sm text-gray-500">{category.label}</p>
-                            </div>
-                        </div>
-                        <p className="text-sm text-gray-600 flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4 text-green-600" /> Fait le{' '}
-                            <span className="font-medium">
-                                {completedDate.toLocaleDateString('fr-FR')}{' '}
-                                à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                        </p>
-                        {item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}
                     </div>
-                </div>
-            );
-        };
-        
-        // --- Formulaires ---
-
-        const FormInput = ({ label, id, ...props }) => (
-            <div>
-                <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                <input id={id} {...props} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500" />
-            </div>
-        );
-
-        const FormSelect = ({ label, id, value, onChange, children }) => (
-             <div>
-                <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                <select id={id} value={value} onChange={onChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
-                    {children}
-                </select>
-            </div>
-        );
-
-        const FormTextArea = ({ label, id, ...props }) => (
-            <div>
-                <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                <textarea id={id} {...props} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 h-24"></textarea>
-            </div>
-        );
-        
-        const AddItemForm = () => (
-             <div className="p-4">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Ajouter un nouvel élément</h2>
-                <div className="space-y-4">
-                    <FormInput label="Nom" id="name" type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} placeholder="Ex: Vidange voiture"/>
-                    <FormSelect label="Catégorie" id="category" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-                        {Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}
-                    </FormSelect>
-                    <FormInput label="Dernier Entretien" id="lastMaintenance" type="date" value={newItem.lastMaintenance} onChange={(e) => setNewItem({ ...newItem, lastMaintenance: e.target.value })}/>
-                    <FormInput label="Fréquence (jours)" id="intervalDays" type="number" value={newItem.intervalDays} onChange={(e) => setNewItem({ ...newItem, intervalDays: e.target.value })} placeholder="Ex: 365"/>
-                    <FormTextArea label="Notes (optionnel)" id="notes" value={newItem.notes} onChange={(e) => setNewItem({ ...newItem, notes: e.target.value })} placeholder="Détails importants..."/>
-                    <button onClick={addItem} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">Ajouter l'élément</button>
-                </div>
-            </div>
-        );
-
-        const EditItemForm = () => (
-            <div className="p-4">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Modifier l'élément</h2>
-                <div className="space-y-4">
-                    <FormInput label="Nom" id="edit-name" type="text" value={editingItem.name} onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}/>
-                    <FormSelect label="Catégorie" id="edit-category" value={editingItem.category} onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}>
-                         {Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}
-                    </FormSelect>
-                    <FormInput label="Dernier Entretien" id="edit-lastMaintenance" type="date" value={editingItem.lastMaintenance} onChange={(e) => setEditingItem({ ...editingItem, lastMaintenance: e.target.value })}/>
-                    <FormInput label="Fréquence (jours)" id="edit-intervalDays" type="number" value={editingItem.intervalDays} onChange={(e) => setEditingItem({ ...editingItem, intervalDays: e.target.value })}/>
-                    <FormTextArea label="Notes (optionnel)" id="edit-notes" value={editingItem.notes} onChange={(e) => setEditingItem({ ...editingItem, notes: e.target.value })}/>
-                    <button onClick={saveEdit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">Enregistrer les modifications</button>
-                </div>
-            </div>
-        );
-
-        const FilterView = () => {
-            const handleFilterChange = (newFilter) => {
-                setFilter(newFilter);
-                setCurrentView('today');
+                );
             };
-            return (
-                <div className="p-4">
-                    <h2 className="text-xl font-bold mb-4 text-gray-800">Filtrer les éléments</h2>
-                    <div className="space-y-3">
-                        <label className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer">
-                            <input type="radio" name="filter" value="all" checked={filter === 'all'} onChange={() => handleFilterChange('all')} className="form-radio text-blue-600 h-5 w-5"/>
-                            <span className="text-gray-700 font-medium">Toutes les tâches</span>
-                        </label>
-                        <label className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer">
-                            <input type="radio" name="filter" value="urgent" checked={filter === 'urgent'} onChange={() => handleFilterChange('urgent')} className="form-radio text-red-600 h-5 w-5"/>
-                            <span className="text-gray-700 font-medium flex items-center gap-2">Urgences <AlertTriangle className="h-5 w-5 text-red-500" /></span>
-                        </label>
-                        {Object.entries(categories).map(([key, cat]) => (
-                            <label key={key} className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer">
-                                <input type="radio" name="filter" value={key} checked={filter === key} onChange={() => handleFilterChange(key)} className={`form-radio h-5 w-5 ${cat.textClass.replace('text-', 'accent-')}`}/>
-                                <span className={`font-medium flex items-center gap-2 ${cat.textClass}`}>{cat.label} <cat.icon className="h-5 w-5" /></span>
-                            </label>
-                        ))}
+            
+            const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText }) => {
+                const handleChange = (e) => {
+                    setItemState({ ...itemState, [e.target.name]: e.target.value });
+                };
+                return (
+                 <div className="p-4">
+                    <h2 className="text-xl font-bold mb-4 text-gray-800">{title}</h2>
+                    <div className="space-y-4">
+                        <input name="name" type="text" value={itemState.name} onChange={handleChange} placeholder="Nom de l'élément" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
+                        <select name="category" value={itemState.category} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
+                            {Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}
+                        </select>
+                        <input name="lastMaintenance" type="date" value={itemState.lastMaintenance} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
+                        <input name="intervalDays" type="number" value={itemState.intervalDays} onChange={handleChange} placeholder="Fréquence (en jours)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
+                        <textarea name="notes" value={itemState.notes} onChange={handleChange} placeholder="Notes (optionnel)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24"></textarea>
+                        <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">{buttonText}</button>
                     </div>
                 </div>
-            );
+                );
+            };
+
+            const FilterView = () => {
+                const handleFilterChange = (newFilter) => {
+                    setFilter(newFilter);
+                    setCurrentView('today');
+                };
+                return (
+                    <div className="p-4">
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Filtrer les éléments</h2>
+                        <div className="space-y-3">
+                            <label className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer">
+                                <input type="radio" name="filter" value="all" checked={filter === 'all'} onChange={() => handleFilterChange('all')} className="form-radio text-blue-600 h-5 w-5"/>
+                                <span className="text-gray-700 font-medium">Toutes les tâches</span>
+                            </label>
+                            <label className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer">
+                                <input type="radio" name="filter" value="urgent" checked={filter === 'urgent'} onChange={() => handleFilterChange('urgent')} className="form-radio text-red-600 h-5 w-5"/>
+                                <span className="text-gray-700 font-medium flex items-center gap-2">Urgences <AlertTriangle className="h-5 w-5 text-red-500" /></span>
+                            </label>
+                            {Object.entries(categories).map(([key, cat]) => (
+                                <label key={key} className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer">
+                                    <input type="radio" name="filter" value={key} checked={filter === key} onChange={() => handleFilterChange(key)} className={`form-radio h-5 w-5 ${cat.textClass.replace('text-', 'accent-')}`}/>
+                                    <span className={`font-medium flex items-center gap-2 ${cat.textClass}`}>{cat.label} <cat.icon className="h-5 w-5" /></span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
         };
-    };
 
-    ReactDOM.render(<MobileMaintenanceApp />, document.getElementById('root'));
+        ReactDOM.render(<MobileMaintenanceApp />, document.getElementById('root'));
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker: Registered'))
-                .catch(err => console.log(`Service Worker: Error: ${err}`));
-        });
-    }
-</script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker: Registered'))
+                    .catch(err => console.log(`Service Worker: Error: ${err}`));
+            });
+        }
+    </script>
+</body>
+</html>
