@@ -17,6 +17,8 @@
     <style>
         input, select, textarea { font-size: 16px !important; }
         body { margin: 0; padding: 0; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900">
@@ -25,7 +27,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- Définition des composants et fonctions utilitaires ---
+        // --- Définition de toutes les Icônes ---
         const Bell = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m13.73 21a2 2 0 0 1-3.46 0"/></svg>);
         const Plus = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-7-7v14"/></svg>);
         const ArrowLeft = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
@@ -43,6 +45,9 @@
         const Sun = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>;
         const Moon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
         const Search = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+        const Bath = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6 9H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-2l-3-3"/><path d="M8 22v-3"/><path d="M12 22v-3"/><path d="M16 22v-3"/><path d="m8.5 4 1-2 1 2"/></svg>);
+        const Bed = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16h20V4Z"/><path d="M2 12h20"/><path d="M2 8h20"/><path d="M10 4v8"/></svg>);
+        const Utensils = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Z"/></svg>);
 
         const categories = {
             voiture: { icon: Car, label: 'Voiture', bgClass: 'bg-green-100 dark:bg-green-900/50' },
@@ -55,16 +60,58 @@
             autres: { icon: Bell, label: 'Autres', bgClass: 'bg-gray-200 dark:bg-gray-700' },
         };
         
-        const getStatus = (nextDateStr) => { /* ... (code inchangé) ... */ };
-        const getStatusColorClasses = (status) => { /* ... (code inchangé) ... */ };
-        const getStatusText = (status, nextDate) => { /* ... (code inchangé) ... */ };
+        const getStatus = (nextDateStr) => {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const nextDate = new Date(nextDateStr); nextDate.setHours(0, 0, 0, 0);
+            const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return 'overdue';
+            if (diffDays <= 7) return 'urgent';
+            return 'ok';
+        };
+
+        const getStatusColorClasses = (status) => {
+             switch (status) {
+                case 'overdue': return 'text-red-600 bg-red-50 border-red-500';
+                case 'urgent': return 'text-orange-600 bg-orange-50 border-orange-500';
+                default: return 'text-green-600 bg-green-50 border-green-500';
+            }
+        };
+
+        const getStatusText = (status, nextDate) => {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const nextDateObj = new Date(nextDate); nextDateObj.setHours(0,0,0,0);
+            const diffDays = Math.ceil((nextDateObj - today) / (1000 * 60 * 60 * 24));
+            if (status === 'overdue') return `Retard de ${Math.abs(diffDays)} j`;
+            if (diffDays === 0) return "Aujourd'hui";
+            return `Dans ${diffDays} j`;
+        };
         
-        const Header = ({ currentView, setCurrentView, isDarkMode, toggleDarkMode, setShowClearHistoryConfirm }) => { /* ... (code inchangé) ... */ };
-        const UrgentBanner = ({ count }) => { /* ... (code inchangé) ... */ };
-        const DeleteConfirmModal = ({ item, onCancel, onDelete }) => { /* ... (code inchangé) ... */ };
-        const ClearHistoryConfirmModal = ({ onCancel, onConfirm }) => { /* ... (code inchangé) ... */ };
-        const Footer = ({ currentView, setCurrentView }) => { /* ... (code inchangé) ... */ };
-        
+        const Header = ({ currentView, setCurrentView, isDarkMode, toggleDarkMode, setShowClearHistoryConfirm }) => {
+            const titles = {
+                today: "À faire aujourd'hui",
+                upcoming: "À prévoir",
+                history: "Historique du jour",
+                add: "Ajouter un élément",
+                edit: "Modifier l'élément",
+                details: "Détails de l'élément",
+                filters: "Filtrer"
+            };
+            return (
+                <header className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
+                    <div className="flex items-center gap-3">
+                        {['add', 'edit', 'filters', 'details'].includes(currentView) && (<button onClick={() => setCurrentView('today')} className="p-1"><ArrowLeft /></button>)}
+                        <Bell />
+                        <h1 className="text-lg font-semibold">{titles[currentView] || "Assistant d'Entretien"}</h1>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button onClick={toggleDarkMode} className="p-2 hover:bg-blue-700 rounded-lg">{isDarkMode ? <Sun/> : <Moon/>}</button>
+                        {(currentView === 'today' || currentView === 'upcoming') && (<button onClick={() => setCurrentView('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button>)}
+                        {currentView === 'history' && (<button onClick={() => setShowClearHistoryConfirm(true)} className="p-2 hover:bg-blue-700 rounded-lg"><Trash2 /></button>)}
+                    </div>
+                </header>
+            );
+        };
+
         const SearchBar = ({ query, setQuery }) => (
             <div className="relative mb-4">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="text-gray-400"/></div>
@@ -72,6 +119,11 @@
             </div>
         );
 
+        const UrgentBanner = ({ count }) => (<div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg p-4 mb-4"><div className="flex items-center gap-2 text-red-700 dark:text-red-400"><AlertTriangle /><span className="font-medium">{count} élément{count > 1 ? 's' : ''} urgent{count > 1 ? 's' : ''}</span></div></div>);
+        const DeleteConfirmModal = ({ item, onCancel, onDelete }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Confirmer la suppression</h3><p className="text-gray-600 dark:text-gray-300 mb-6">Êtes-vous sûr de vouloir supprimer "{item?.name}" ?</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 dark:text-gray-200 rounded-md">Annuler</button><button onClick={onDelete} className="px-4 py-2 bg-red-600 text-white rounded-md">Supprimer</button></div></div></div>);
+        const ClearHistoryConfirmModal = ({ onCancel, onConfirm }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Vider l'historique</h3><p className="text-gray-600 dark:text-gray-300 mb-6">Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 dark:text-gray-200 rounded-md">Annuler</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-md">Vider</button></div></div></div>);
+        const Footer = ({ currentView, setCurrentView }) => (<footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50"><button onClick={() => setCurrentView('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${currentView === 'today' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}><HomeIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button><button onClick={() => setCurrentView('upcoming')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${currentView === 'upcoming' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}><CalendarClock className="w-6 h-6" /><span className="text-xs mt-1">À prévoir</span></button><button onClick={() => setCurrentView('history')} className={`flex flex-col items-center p-2 rounded-lg w-1/3 ${currentView === 'history' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}><HistoryIcon className="w-6 h-6" /><span className="text-xs mt-1">Historique</span></button></footer>);
+        
         const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails }) => {
             const category = categories[item.category] || categories.autres;
             const status = getStatus(item.nextMaintenance);
@@ -90,7 +142,7 @@
                                 <button onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(item.id); }} className="p-2 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 /></button>
                             </div>
                         </div>
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium mb-3 border ${borderColor.replace('border-','border-')} ${bgColor} ${textColor}`}>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium mb-3 border ${borderColor.replace('border-','border-')} ${bgColor.replace('bg-','dark:bg-')} ${textColor}`}>
                             {status === 'overdue' ? <AlertTriangle className="w-4 h-4"/> : <Clock className="w-4 h-4"/>}
                             {getStatusText(status, item.nextMaintenance)}
                         </div>
@@ -108,21 +160,34 @@
             );
         };
         
-        const HistoryCard = ({ item }) => { /* ... (code inchangé) ... */ };
-        const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText }) => { /* ... (code inchangé) ... */ };
-        const FilterView = ({ filter, setFilter, setCurrentView }) => { /* ... (code inchangé) ... */ };
-        
-        const DetailsView = ({ item, history, setCurrentView }) => {
+        const HistoryCard = ({ item }) => {
+            const category = categories[item.category] || categories.autres;
+            const completedDate = new Date(item.completedAt);
+            return (<div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border-l-4 border-green-500 animate-fade-in"><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon className="dark:text-gray-200" /></div><div className="dark:text-gray-200"><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500 dark:text-gray-400">{category.label}</p></div></div><p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
+        };
+
+        const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText }) => (
+            <div className="p-4 animate-fade-in">
+                <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">{title}</h2>
+                <div className="space-y-4">
+                    <input name="name" type="text" value={itemState.name} onChange={(e) => setItemState({...itemState, name: e.target.value})} placeholder="Nom de l'élément" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white"/>
+                    <select name="category" value={itemState.category} onChange={(e) => setItemState({...itemState, category: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white">{Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}</select>
+                    <div><label className="text-sm font-medium text-gray-700 dark:text-gray-300">Dernier entretien</label><input name="lastMaintenance" type="date" value={itemState.lastMaintenance} onChange={(e) => setItemState({...itemState, lastMaintenance: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white"/></div>
+                    <input name="intervalDays" type="number" value={itemState.intervalDays} onChange={(e) => setItemState({...itemState, intervalDays: e.target.value})} placeholder="Fréquence (en jours)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 dark:bg-gray-800 dark:border-gray-600 dark:text-white"/>
+                    <textarea name="notes" value={itemState.notes} onChange={(e) => setItemState({...itemState, notes: e.target.value})} placeholder="Notes (optionnel)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24 dark:bg-gray-800 dark:border-gray-600 dark:text-white"></textarea>
+                    <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">{buttonText}</button>
+                </div>
+            </div>
+        );
+
+        const DetailsView = ({ item, history }) => {
             const itemHistory = history.filter(h => h.originalId === item.id).sort((a,b) => new Date(b.completedAt) - new Date(a.completedAt));
             const category = categories[item.category] || categories.autres;
             return (
                 <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg shadow-lg p-6 animate-fade-in">
                     <div className="flex items-center gap-4 mb-4 pb-4 border-b dark:border-gray-700">
                         <div className={`p-3 rounded-lg ${category.bgClass}`}><category.icon className="dark:text-gray-200" /></div>
-                        <div>
-                            <h2 className="text-2xl font-bold ">{item.name}</h2>
-                            <p className="text-gray-500 dark:text-gray-400">{category.label}</p>
-                        </div>
+                        <div><h2 className="text-2xl font-bold ">{item.name}</h2><p className="text-gray-500 dark:text-gray-400">{category.label}</p></div>
                     </div>
                     <div className="space-y-2 text-sm mb-6">
                         <p><strong>Prochain entretien :</strong> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
@@ -130,23 +195,22 @@
                         <p><strong>Fréquence :</strong> Tous les {item.intervalDays} jours</p>
                         {item.notes && <p className="mt-2 pt-2 border-t dark:border-gray-700"><strong>Notes :</strong> {item.notes}</p>}
                     </div>
-
-                    <h3 className="text-xl font-semibold mt-6 mb-3">Historique d'entretien</h3>
-                    {itemHistory.length > 0 ? (
-                        <ul className="space-y-2">
-                            {itemHistory.map(h => (
-                                <li key={h.id} className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                    <span>Fait le :</span>
-                                    <span className="font-medium">{new Date(h.completedAt).toLocaleString('fr-FR', {dateStyle: 'long', timeStyle: 'short'})}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : <p className="text-gray-500 dark:text-gray-400 italic">Aucun historique pour cet élément.</p>}
+                    <h3 className="text-xl font-semibold mt-6 mb-3">Historique de cet élément</h3>
+                    {itemHistory.length > 0 ? (<ul className="space-y-2">{itemHistory.map(h => (<li key={h.id} className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"><span>Fait le :</span><span className="font-medium">{new Date(h.completedAt).toLocaleString('fr-FR', {dateStyle: 'long', timeStyle: 'short'})}</span></li>))}</ul>) 
+                    : <p className="text-gray-500 dark:text-gray-400 italic">Aucun historique pour cet élément.</p>}
                 </div>
             );
         };
         
-        const PageView = ({ items, view, ...props }) => { /* ... (code inchangé) ... */ };
+        const PageView = ({ items, view, ...props }) => {
+            const emptyStates = {
+                today: { icon: CheckCircle, text: "Rien à faire aujourd'hui !", subtext: "Profitez de votre journée." },
+                upcoming: { icon: Clock, text: "Aucune tâche à prévoir.", subtext: "Ajoutez de nouveaux éléments." },
+                history: { icon: HistoryIcon, text: "Aucune tâche complétée aujourd'hui.", subtext: "Marquez une tâche comme faite." }
+            };
+            const { icon: EmptyIcon, text, subtext } = emptyStates[view];
+            return items.length === 0 ? (<div className="text-center py-12"><EmptyIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" /><p className="text-gray-500 dark:text-gray-300 text-lg mb-2">{text}</p><p className="text-gray-400 dark:text-gray-500">{subtext}</p></div>) : (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} /> : <ItemCard key={item.id} item={item} {...props} />)}</div>);
+        };
         
         const AppUI = ({
             items, history, currentView, setCurrentView, detailedItem, showDetails,
@@ -154,9 +218,51 @@
             showDeleteConfirm, setShowDeleteConfirm, showClearHistoryConfirm, setShowClearHistoryConfirm, 
             addItem, startEdit, saveEdit, markAsDone, deleteItem, clearHistory,
             searchQuery, setSearchQuery, isDarkMode, toggleDarkMode
-        }) => { /* ... (code inchangé, avec les nouvelles props) ... */ };
+        }) => {
+            const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
+
+            const getVisibleItems = (view) => {
+                if (view === 'history') { return history.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); }
+                
+                let list = items.filter(item => {
+                    if (searchQuery) {
+                        return item.name.toLowerCase().includes(searchQuery.toLowerCase());
+                    }
+                    return true;
+                });
+
+                return list.filter(item => {
+                    const nextDate = new Date(item.nextMaintenance); nextDate.setHours(0, 0, 0, 0);
+                    if (view === 'today' && nextDate > todayDate) return false;
+                    if (view === 'upcoming' && nextDate <= todayDate) return false;
+                    return true;
+                }).sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance));
+            };
+
+            const urgentCount = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent').length;
+
+            return (
+                <div className="max-w-md mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
+                    <Header currentView={currentView} setCurrentView={setCurrentView} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} setShowClearHistoryConfirm={setShowClearHistoryConfirm} />
+                    <main className="flex-grow overflow-y-auto p-4 pb-20">
+                        {urgentCount > 0 && (currentView === 'today' || currentView === 'upcoming') && <UrgentBanner count={urgentCount} />}
+                        {(currentView === 'today' || currentView === 'upcoming') && <SearchBar query={searchQuery} setQuery={setSearchQuery} />}
+                        
+                        {currentView === 'today' && <PageView items={getVisibleItems('today')} view="today" showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} />}
+                        {currentView === 'upcoming' && <PageView items={getVisibleItems('upcoming')} view="upcoming" showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} />}
+                        {currentView === 'history' && <PageView items={getVisibleItems('history')} view="history" />}
+                        {currentView === 'details' && detailedItem && <DetailsView item={detailedItem} history={history} />}
+
+                        {currentView === 'add' && <ItemForm key="add" onSubmit={addItem} itemState={newItem} setItemState={setNewItem} title="Ajouter un nouvel élément" buttonText="Ajouter l'élément"/>}
+                        {currentView === 'edit' && editingItem && <ItemForm key="edit" onSubmit={saveEdit} itemState={editingItem} setItemState={setEditingItem} title="Modifier l'élément" buttonText="Enregistrer"/>}
+                    </main>
+                    {showDeleteConfirm && <DeleteConfirmModal item={items.find(i => i.id === showDeleteConfirm)} onCancel={() => setShowDeleteConfirm(null)} onDelete={() => deleteItem(showDeleteConfirm)} />}
+                    {showClearHistoryConfirm && <ClearHistoryConfirmModal onCancel={() => setShowClearHistoryConfirm(false)} onConfirm={clearHistory} />}
+                    <Footer currentView={currentView} setCurrentView={setCurrentView} />
+                </div>
+            );
+        };
         
-        // --- Composant principal de l'application ---
         const MobileMaintenanceApp = () => {
             const [items, setItems] = useState(() => JSON.parse(localStorage.getItem('maintenanceItems_v2')) || []);
             const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
@@ -179,12 +285,43 @@
             }, [isDarkMode]);
 
             const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
-            const getNextMaintenanceDate = (lastDate, intervalDays) => { /* ... (code inchangé) ... */ };
-            const markAsDone = (id) => { /* ... (code inchangé) ... */ };
-            const addItem = () => { /* ... (code inchangé) ... */ };
+            const getNextMaintenanceDate = (lastDate, intervalDays) => { const last = new Date(lastDate); const next = new Date(last); next.setDate(last.getDate() + parseInt(intervalDays, 10)); return next; };
+            
+            const markAsDone = (id) => {
+                let itemToComplete;
+                const newItems = items.map(item => {
+                    if (item.id === id) {
+                        itemToComplete = { ...item };
+                        const now = new Date();
+                        item.lastMaintenance = now.toISOString().split('T')[0];
+                        item.nextMaintenance = getNextMaintenanceDate(now, item.intervalDays).toISOString();
+                        setJustCompleted(id);
+                        setTimeout(() => setJustCompleted(null), 2000);
+                    }
+                    return item;
+                });
+                setItems(newItems);
+
+                if (itemToComplete) {
+                    const todayString = new Date().toISOString().split('T')[0];
+                    setHistory(currentHistory => {
+                        const existingHistoryIndex = currentHistory.findIndex(histItem => histItem.originalId === itemToComplete.id && histItem.completedAt.startsWith(todayString));
+                        if (existingHistoryIndex !== -1) {
+                            const updatedHistory = [...currentHistory];
+                            updatedHistory[existingHistoryIndex].completedAt = new Date().toISOString();
+                            return updatedHistory;
+                        } else {
+                            const newHistoryEntry = { ...itemToComplete, id: Date.now(), originalId: itemToComplete.id, completedAt: new Date().toISOString() };
+                            return [newHistoryEntry, ...currentHistory];
+                        }
+                    });
+                }
+            };
+            
+            const addItem = () => { if (!newItem.name || !newItem.lastMaintenance || !newItem.intervalDays) return; const itemToAdd = { id: Date.now(), ...newItem, intervalDays: parseInt(newItem.intervalDays, 10), nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString() }; setItems(currentItems => [...currentItems, itemToAdd]); setNewItem({ name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: '' }); setCurrentView('today'); };
             const startEdit = (item) => { setEditingItem({ ...item, lastMaintenance: new Date(item.lastMaintenance).toISOString().split('T')[0] }); setCurrentView('edit'); };
-            const saveEdit = () => { /* ... (code inchangé) ... */ };
-            const deleteItem = (id) => { /* ... (code inchangé) ... */ };
+            const saveEdit = () => { if (!editingItem || !editingItem.name || !editingItem.lastMaintenance || !editingItem.intervalDays) return; const updatedItem = { ...editingItem, intervalDays: parseInt(editingItem.intervalDays, 10), nextMaintenance: getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString() }; setItems(currentItems => currentItems.map(i => i.id === editingItem.id ? updatedItem : i)); setEditingItem(null); setCurrentView('today'); };
+            const deleteItem = (id) => { setItems(items.filter(item => item.id !== id)); setHistory(history.filter(item => item.originalId !== id)); setShowDeleteConfirm(null);};
             const clearHistory = () => { setHistory([]); setShowClearHistoryConfirm(false); };
             const showDetails = (item) => { setDetailedItem(item); setCurrentView('details'); };
 
