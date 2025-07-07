@@ -233,13 +233,26 @@
                 setItems(newItems);
 
                 if (itemToComplete) {
-                    const historyEntry = {
-                        ...itemToComplete,
-                        id: Date.now(),
-                        originalId: itemToComplete.id,
-                        completedAt: new Date().toISOString()
-                    };
-                    setHistory(currentHistory => [historyEntry, ...currentHistory]);
+                    const todayString = new Date().toISOString().split('T')[0];
+                    setHistory(currentHistory => {
+                        const existingHistoryIndex = currentHistory.findIndex(
+                            histItem => histItem.originalId === itemToComplete.id && histItem.completedAt.startsWith(todayString)
+                        );
+
+                        if (existingHistoryIndex !== -1) {
+                            const updatedHistory = [...currentHistory];
+                            updatedHistory[existingHistoryIndex].completedAt = new Date().toISOString();
+                            return updatedHistory;
+                        } else {
+                            const newHistoryEntry = {
+                                ...itemToComplete,
+                                id: Date.now(),
+                                originalId: itemToComplete.id,
+                                completedAt: new Date().toISOString()
+                            };
+                            return [newHistoryEntry, ...currentHistory];
+                        }
+                    });
                 }
             };
             
@@ -266,6 +279,7 @@
             
             const deleteItem = (id) => {
                 setItems(items.filter(item => item.id !== id));
+                setHistory(history.filter(item => item.originalId !== id)); // Also remove from history
                 setShowDeleteConfirm(null);
             };
 
