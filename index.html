@@ -278,10 +278,14 @@
 
             useEffect(() => { localStorage.setItem('maintenanceItems_v2', JSON.stringify(items)); }, [items]);
             useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
+            
             useEffect(() => {
                 localStorage.setItem('darkMode', isDarkMode);
-                if (isDarkMode) { document.documentElement.classList.add('dark'); } 
-                else { document.documentElement.classList.remove('dark'); }
+                if (isDarkMode) {
+                    document.body.classList.add('dark');
+                } else {
+                    document.body.classList.remove('dark');
+                }
             }, [isDarkMode]);
 
             const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
