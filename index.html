@@ -205,6 +205,7 @@
             const [editingItem, setEditingItem] = useState(null);
             const [filter, setFilter] = useState('all');
             const [justCompleted, setJustCompleted] = useState(null);
+            const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
             const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: '' });
 
             useEffect(() => { localStorage.setItem('maintenanceItems_v2', JSON.stringify(items)); }, [items]);
