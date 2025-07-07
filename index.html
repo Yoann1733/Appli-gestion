@@ -84,8 +84,25 @@
         
         const Header = ({ currentView, setCurrentView, filter }) => (
             <header className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
-                <div className="flex items-center gap-3"><button onClick={() => setCurrentView('today')} className="p-1"><ArrowLeft /></button><Bell /><h1 className="text-lg font-semibold">{currentView === 'today' ? "À faire aujourd'hui" : 'Modifier'}</h1></div>
-                <div className="flex items-center gap-2"><button onClick={() => setCurrentView('filters')} className="p-2 hover:bg-blue-700 rounded-lg relative"><Filter />{filter !== 'all' && (<div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>)}</button><button onClick={() => setCurrentView('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button></div>
+                <div className="flex items-center gap-3">
+                    {['add', 'edit', 'filters'].includes(currentView) && (<button onClick={() => setCurrentView('today')} className="p-1"><ArrowLeft /></button>)}
+                    <Bell />
+                    <h1 className="text-lg font-semibold">
+                        {currentView === 'today' ? "À faire aujourd'hui" :
+                         currentView === 'upcoming' ? 'À prévoir' :
+                         currentView === 'history' ? 'Historique du jour' :
+                         currentView === 'add' ? 'Ajouter' : 'Modifier'}
+                    </h1>
+                </div>
+                {(currentView === 'today' || currentView === 'upcoming') && (
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setCurrentView('filters')} className="p-2 hover:bg-blue-700 rounded-lg relative">
+                            <Filter />
+                            {filter !== 'all' && (<div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>)}
+                        </button>
+                        <button onClick={() => setCurrentView('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button>
+                    </div>
+                )}
             </header>
         );
 
@@ -142,18 +159,16 @@
         };
         
         const AppUI = ({
-            items, currentView, setCurrentView, filter, setFilter, newItem, setNewItem, editingItem, setEditingItem,
+            items, history, currentView, setCurrentView, filter, setFilter, newItem, setNewItem, editingItem, setEditingItem,
             justCompleted, showDeleteConfirm, setShowDeleteConfirm, addItem, startEdit, saveEdit, markAsDone, deleteItem
         }) => {
-            const todayString = new Date().toISOString().split('T')[0];
             const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
 
             const getVisibleItems = (view) => {
-                if (view === 'history') { return items.filter(item => item.completedAt && item.completedAt.startsWith(todayString)).sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); }
+                if (view === 'history') { return history.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); }
                 return items.filter(item => {
                     const nextDate = new Date(item.nextMaintenance); nextDate.setHours(0, 0, 0, 0);
-                    const isCompletedToday = item.completedAt && item.completedAt.startsWith(todayString);
-                    if (view === 'today' && (isCompletedToday || nextDate > todayDate)) return false;
+                    if (view === 'today' && nextDate > todayDate) return false;
                     if (view === 'upcoming' && nextDate <= todayDate) return false;
                     if (filter === 'all') return true;
                     if (filter === 'urgent') return getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent';
@@ -161,7 +176,7 @@
                 }).sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance));
             };
 
-            const urgentCount = items.filter(item => !item.completedAt?.startsWith(todayString) && (getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent')).length;
+            const urgentCount = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent').length;
 
             return (
                 <div className="max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col">
@@ -174,7 +189,6 @@
                         {currentView === 'history' && <PageView items={getVisibleItems('history')} view="history" />}
 
                         {currentView === 'add' && <ItemForm key="add" onSubmit={addItem} itemState={newItem} setItemState={setNewItem} title="Ajouter un nouvel élément" buttonText="Ajouter l'élément"/>}
-                        {/* CORRECTION : On passe setEditingItem et non setNewItem */}
                         {currentView === 'edit' && editingItem && <ItemForm key="edit" onSubmit={saveEdit} itemState={editingItem} setItemState={setEditingItem} title="Modifier l'élément" buttonText="Enregistrer"/>}
                         {currentView === 'filters' && <FilterView filter={filter} setFilter={setFilter} setCurrentView={setCurrentView}/>}
                     </main>
@@ -185,15 +199,16 @@
         };
         
         const MobileMaintenanceApp = () => {
-            const [items, setItems] = useState(() => JSON.parse(localStorage.getItem('maintenanceItems')) || []);
+            const [items, setItems] = useState(() => JSON.parse(localStorage.getItem('maintenanceItems_v2')) || []);
+            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
             const [currentView, setCurrentView] = useState('today');
             const [editingItem, setEditingItem] = useState(null);
             const [filter, setFilter] = useState('all');
             const [justCompleted, setJustCompleted] = useState(null);
-            const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
             const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: '' });
 
-            useEffect(() => { localStorage.setItem('maintenanceItems', JSON.stringify(items)); }, [items]);
+            useEffect(() => { localStorage.setItem('maintenanceItems_v2', JSON.stringify(items)); }, [items]);
+            useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
             
             const getNextMaintenanceDate = (lastDate, intervalDays) => {
                 const last = new Date(lastDate); const next = new Date(last);
@@ -202,21 +217,34 @@
             };
 
             const markAsDone = (id) => {
-                setItems(currentItems => currentItems.map(item => {
+                let itemToComplete;
+                const newItems = items.map(item => {
                     if (item.id === id) {
+                        itemToComplete = { ...item };
                         const now = new Date();
-                        const updatedItem = { ...item, lastMaintenance: now.toISOString().split('T')[0], nextMaintenance: getNextMaintenanceDate(now, item.intervalDays).toISOString(), completedAt: now.toISOString() };
+                        item.lastMaintenance = now.toISOString().split('T')[0];
+                        item.nextMaintenance = getNextMaintenanceDate(now, item.intervalDays).toISOString();
                         setJustCompleted(id);
                         setTimeout(() => setJustCompleted(null), 2000);
-                        return updatedItem;
                     }
                     return item;
-                }));
+                });
+                setItems(newItems);
+
+                if (itemToComplete) {
+                    const historyEntry = {
+                        ...itemToComplete,
+                        id: Date.now(),
+                        originalId: itemToComplete.id,
+                        completedAt: new Date().toISOString()
+                    };
+                    setHistory(currentHistory => [historyEntry, ...currentHistory]);
+                }
             };
             
             const addItem = () => {
                 if (!newItem.name || !newItem.lastMaintenance || !newItem.intervalDays) return;
-                const itemToAdd = { id: Date.now(), ...newItem, intervalDays: parseInt(newItem.intervalDays, 10), nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString(), completedAt: null };
+                const itemToAdd = { id: Date.now(), ...newItem, intervalDays: parseInt(newItem.intervalDays, 10), nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString() };
                 setItems(currentItems => [...currentItems, itemToAdd]);
                 setNewItem({ name: '', category: 'voiture', lastMaintenance: '', intervalDays: '', notes: '' });
                 setCurrentView('today');
@@ -242,7 +270,7 @@
 
             return (
                 <AppUI
-                    items={items} currentView={currentView} setCurrentView={setCurrentView} filter={filter} setFilter={setFilter}
+                    items={items} history={history} currentView={currentView} setCurrentView={setCurrentView} filter={filter} setFilter={setFilter}
                     newItem={newItem} setNewItem={setNewItem} editingItem={editingItem} setEditingItem={setEditingItem}
                     justCompleted={justCompleted} showDeleteConfirm={showDeleteConfirm} setShowDeleteConfirm={setShowDeleteConfirm}
                     addItem={addItem} startEdit={startEdit} saveEdit={saveEdit} markAsDone={markAsDone} deleteItem={deleteItem}
