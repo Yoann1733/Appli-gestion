@@ -80,7 +80,6 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const nextDateObj = new Date(nextDate); nextDateObj.setHours(0,0,0,0);
             const diffDays = Math.ceil((nextDateObj - today) / (1000 * 60 * 60 * 24));
-            
             if (status === 'overdue') return `Retard de ${Math.abs(diffDays)} j`;
             if (diffDays === 0) return "Aujourd'hui";
             if (diffDays === 1) return "Demain";
@@ -122,6 +121,7 @@
         const UrgentBanner = ({ count }) => (<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"><div className="flex items-center gap-2 text-red-700"><AlertTriangle /><span className="font-medium">{count} élément{count > 1 ? 's' : ''} urgent{count > 1 ? 's' : ''}</span></div></div>);
         const DeleteConfirmModal = ({ item, onCancel, onDelete }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer "{item?.name}" ?</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onDelete} className="px-4 py-2 bg-red-600 text-white rounded-md">Supprimer</button></div></div></div>);
         const ClearHistoryConfirmModal = ({ onCancel, onConfirm }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Vider l'historique</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-md">Vider</button></div></div></div>);
+        
         const Footer = ({ currentView, setCurrentView }) => (
             <footer className="bg-white border-t border-gray-200 p-2 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
                 <button onClick={() => setCurrentView('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500'}`}><HomeIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button>
@@ -325,6 +325,35 @@
             useEffect(() => { localStorage.setItem('maintenanceItems_v2', JSON.stringify(items)); }, [items]);
             useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
             
+            useEffect(() => {
+                if (notificationStatus !== 'granted') return;
+
+                const lastNotificationDate = localStorage.getItem('lastNotificationDate');
+                const today = getTodayDateString();
+
+                if (lastNotificationDate === today) return;
+
+                const urgentItems = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent');
+
+                if (urgentItems.length > 0) {
+                    let title = "Rappel d'entretien";
+                    let body = `Vous avez ${urgentItems.length} tâches urgentes ou en retard.`;
+                    
+                    if (urgentItems.length === 1) {
+                        body = `${urgentItems[0].name} est à faire bientôt !`;
+                    }
+
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, {
+                            body: body,
+                            icon: './icon-192.png',
+                            badge: './icon-96.png'
+                        });
+                        localStorage.setItem('lastNotificationDate', today);
+                    });
+                }
+            }, [items, notificationStatus]);
+
             const requestNotificationPermission = async () => {
                 if (!('Notification' in window) || !navigator.serviceWorker) {
                     alert("Ce navigateur ne supporte pas les notifications.");
