@@ -89,16 +89,7 @@
         };
         
         const Header = ({ currentView, navigateTo, lastMainView, setShowClearHistoryConfirm }) => {
-            const titles = {
-                today: "À faire aujourd'hui",
-                upcoming: "À prévoir",
-                history: "Historique",
-                add: "Ajouter un élément",
-                edit: "Modifier l'élément",
-                details: "Détails de l'élément",
-                settings: "Réglages",
-                filters: "Filtrer"
-            };
+            const titles = { today: "À faire aujourd'hui", upcoming: "À prévoir", history: "Historique", add: "Ajouter un élément", edit: "Modifier l'élément", details: "Détails de l'élément", settings: "Réglages", filters: "Filtrer" };
             return (
                 <header className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
                     <div className="flex items-center gap-3">
@@ -121,15 +112,7 @@
         const UrgentBanner = ({ count }) => (<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"><div className="flex items-center gap-2 text-red-700"><AlertTriangle /><span className="font-medium">{count} élément{count > 1 ? 's' : ''} urgent{count > 1 ? 's' : ''}</span></div></div>);
         const DeleteConfirmModal = ({ item, onCancel, onDelete }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer "{item?.name}" ?</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onDelete} className="px-4 py-2 bg-red-600 text-white rounded-md">Supprimer</button></div></div></div>);
         const ClearHistoryConfirmModal = ({ onCancel, onConfirm }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Vider l'historique</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-md">Vider</button></div></div></div>);
-        
-        const Footer = ({ currentView, navigateTo }) => (
-            <footer className="bg-white border-t border-gray-200 p-2 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
-                <button onClick={() => navigateTo('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500'}`}><HomeIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button>
-                <button onClick={() => navigateTo('upcoming')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'upcoming' ? 'text-blue-600' : 'text-gray-500'}`}><CalendarClock className="w-6 h-6" /><span className="text-xs mt-1">À prévoir</span></button>
-                <button onClick={() => navigateTo('history')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'history' ? 'text-blue-600' : 'text-gray-500'}`}><HistoryIcon className="w-6 h-6" /><span className="text-xs mt-1">Historique</span></button>
-                <button onClick={() => navigateTo('settings')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'settings' ? 'text-blue-600' : 'text-gray-500'}`}><Settings className="w-6 h-6" /><span className="text-xs mt-1">Réglages</span></button>
-            </footer>
-        );
+        const Footer = ({ currentView, navigateTo }) => (<footer className="bg-white border-t border-gray-200 p-2 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50"><button onClick={() => navigateTo('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500'}`}><HomeIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button><button onClick={() => navigateTo('upcoming')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'upcoming' ? 'text-blue-600' : 'text-gray-500'}`}><CalendarClock className="w-6 h-6" /><span className="text-xs mt-1">À prévoir</span></button><button onClick={() => navigateTo('history')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'history' ? 'text-blue-600' : 'text-gray-500'}`}><HistoryIcon className="w-6 h-6" /><span className="text-xs mt-1">Historique</span></button><button onClick={() => navigateTo('settings')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'settings' ? 'text-blue-600' : 'text-gray-500'}`}><Settings className="w-6 h-6" /><span className="text-xs mt-1">Réglages</span></button></footer>);
         
         const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails }) => {
             const category = categories[item.category] || categories.autres;
@@ -225,9 +208,15 @@
                         <div><h2 className="text-2xl font-bold ">{item.name}</h2><p className="text-gray-500">{category.label}</p></div>
                     </div>
                     <div className="space-y-2 text-sm mb-6">
-                        <p><strong>Prochain entretien :</strong> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
-                        <p><strong>Dernier entretien :</strong> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>
-                        <p><strong>Fréquence :</strong> Tous les {item.intervalDays} jours</p>
+                        {item.isRecurring ? (
+                            <>
+                                <p><strong>Prochain entretien :</strong> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
+                                <p><strong>Dernier entretien :</strong> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>
+                                <p><strong>Fréquence :</strong> Tous les {item.intervalDays} jours</p>
+                            </>
+                        ) : (
+                            <p><strong>Échéance :</strong> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
+                        )}
                         {item.notes && <p className="mt-2 pt-2 border-t"><strong>Notes :</strong> {item.notes}</p>}
                     </div>
                     <h3 className="text-xl font-semibold mt-6 mb-3">Historique de cet élément</h3>
@@ -301,6 +290,20 @@
                             {notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}
                         </button>
                     </div>
+                </div>
+            );
+        };
+        
+        const ActiveFilterBanner = ({ filter, onClear }) => {
+            const filterLabel = filter === 'urgent' ? 'Urgences' : categories[filter]?.label;
+            if (!filterLabel) return null;
+
+            return (
+                <div className="flex items-center justify-between p-3 mb-4 bg-blue-100 text-blue-800 rounded-lg animate-fade-in">
+                    <span className="font-medium">Filtre actif : {filterLabel}</span>
+                    <button onClick={onClear} className="p-1 rounded-full hover:bg-blue-200">
+                        <XCircle className="w-5 h-5" />
+                    </button>
                 </div>
             );
         };
@@ -468,8 +471,24 @@
                 navigateTo('today');
             };
 
-            const startEdit = (item) => { setEditingItem({ ...item, lastMaintenance: new Date(item.nextMaintenance).toISOString().split('T')[0] }); navigateTo('edit'); };
-            const saveEdit = () => { if (!editingItem) return; const updatedItem = { ...editingItem, intervalDays: parseInt(editingItem.intervalDays, 10), nextMaintenance: getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString() }; setItems(currentItems => currentItems.map(i => i.id === editingItem.id ? updatedItem : i)); setEditingItem(null); navigateTo('today'); };
+            const startEdit = (item) => {
+                const dateForForm = item.isRecurring ? item.lastMaintenance : item.nextMaintenance;
+                setEditingItem({ ...item, lastMaintenance: new Date(dateForForm).toISOString().split('T')[0] });
+                navigateTo('edit');
+            };
+
+            const saveEdit = () => {
+                if (!editingItem) return;
+                if (!editingItem.name || !editingItem.lastMaintenance || (editingItem.isRecurring && !editingItem.intervalDays)) { alert("Veuillez remplir tous les champs requis."); return; }
+                
+                const nextMaintenance = editingItem.isRecurring ? getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString() : new Date(editingItem.lastMaintenance).toISOString();
+                const updatedItem = { ...editingItem, nextMaintenance, intervalDays: editingItem.isRecurring ? parseInt(editingItem.intervalDays, 10) : null };
+
+                setItems(currentItems => currentItems.map(i => i.id === editingItem.id ? updatedItem : i));
+                setEditingItem(null);
+                navigateTo('today');
+            };
+
             const deleteItem = (id) => { setItems(items.filter(item => item.id !== id)); setHistory(history.filter(item => item.originalId !== id)); setShowDeleteConfirm(null);};
             const clearHistory = () => { setHistory([]); setShowClearHistoryConfirm(false); };
             const showDetails = (item) => { setDetailedItem(item); navigateTo('details'); };
