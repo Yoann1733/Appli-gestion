@@ -1,7 +1,7 @@
 {
-  "name": "Assistant d'Entretien",
-  "short_name": "Entretien",
-  "description": "Application pour gérer l'entretien de vos équipements",
+  "name": "Upkeep",
+  "short_name": "Upkeep",
+  "description": "Votre assistant personnel pour l'entretien.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f3f4f6",
