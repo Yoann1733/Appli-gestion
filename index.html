@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assistant d'Entretien</title>
+    <title>Upkeep</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -98,7 +98,7 @@
                     <div className="flex items-center gap-3">
                         {['add', 'edit', 'details'].includes(currentView) && (<button onClick={() => setCurrentView('today')} className="p-1"><ArrowLeft /></button>)}
                         <Bell />
-                        <h1 className="text-lg font-semibold">{titles[currentView] || "Assistant d'Entretien"}</h1>
+                        <h1 className="text-lg font-semibold">{titles[currentView] || "Upkeep"}</h1>
                     </div>
                     <div className="flex items-center gap-2">
                         {(currentView === 'today' || currentView === 'upcoming') && (<button onClick={() => setCurrentView('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button>)}
