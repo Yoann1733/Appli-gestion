@@ -89,7 +89,16 @@
         };
         
         const Header = ({ currentView, navigateTo, lastMainView, setShowClearHistoryConfirm }) => {
-            const titles = { today: "À faire aujourd'hui", upcoming: "À prévoir", history: "Historique", add: "Ajouter un élément", edit: "Modifier l'élément", details: "Détails de l'élément", settings: "Réglages", filters: "Filtrer" };
+            const titles = {
+                today: "À faire aujourd'hui",
+                upcoming: "À prévoir",
+                history: "Historique",
+                add: "Ajouter un élément",
+                edit: "Modifier l'élément",
+                details: "Détails de l'élément",
+                settings: "Réglages",
+                filters: "Filtrer"
+            };
             return (
                 <header className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
                     <div className="flex items-center gap-3">
@@ -141,12 +150,15 @@
                             </div>
                         </div>
                         <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium mb-3 border ${borderColor.replace('border-','border-')} ${bgColor} ${textColor}`}>
-                            {status === 'overdue' ? <AlertTriangle className="w-4 h-4"/> : <Clock className="w-4 h-4"/>}
-                            {getStatusText(status, item.nextMaintenance)}
+                            <Clock className="w-4 h-4"/>
+                            {item.isRecurring ? getStatusText(status, item.nextMaintenance) : `Pour le ${new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}`}
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
-                            <p><span className="font-medium">Dernier:</span> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>
-                            <p><span className="font-medium">Prochain:</span> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
+                           {item.isRecurring && <p><span className="font-medium">Dernier:</span> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>}
+                           {item.isRecurring ? 
+                                <p><span className="font-medium">Prochain:</span> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
+                               : <p><span className="font-medium">Échéance:</span> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
+                           }
                         </div>
                     </div>
                     <div className="border-t p-2">
@@ -164,19 +176,44 @@
             return (<div className="bg-white rounded-lg shadow-md border-l-4 border-green-500 animate-fade-in"><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon /></div><div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div></div><p className="text-sm text-gray-600 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
         };
 
-        const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText }) => (
-            <div className="p-4 animate-fade-in">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">{title}</h2>
-                <div className="space-y-4">
-                    <input name="name" type="text" value={itemState.name} onChange={(e) => setItemState({...itemState, name: e.target.value})} placeholder="Nom de l'élément" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
-                    <select name="category" value={itemState.category} onChange={(e) => setItemState({...itemState, category: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">{Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}</select>
-                    <div><label className="text-sm font-medium text-gray-700">Dernier entretien</label><input name="lastMaintenance" type="date" value={itemState.lastMaintenance} onChange={(e) => setItemState({...itemState, lastMaintenance: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/></div>
-                    <input name="intervalDays" type="number" value={itemState.intervalDays} onChange={(e) => setItemState({...itemState, intervalDays: e.target.value})} placeholder="Fréquence (en jours)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
-                    <textarea name="notes" value={itemState.notes} onChange={(e) => setItemState({...itemState, notes: e.target.value})} placeholder="Notes (optionnel)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24"></textarea>
-                    <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">{buttonText}</button>
+        const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText }) => {
+            const handleRecurringChange = (e) => {
+                const isRecurring = e.target.checked;
+                setItemState({ ...itemState, isRecurring, intervalDays: isRecurring ? itemState.intervalDays : '' });
+            };
+
+            return (
+                <div className="p-4 animate-fade-in">
+                    <h2 className="text-xl font-bold mb-4 text-gray-800">{title}</h2>
+                    <div className="space-y-4">
+                        <input name="name" type="text" value={itemState.name} onChange={(e) => setItemState({...itemState, name: e.target.value})} placeholder="Nom de l'élément" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
+                        <select name="category" value={itemState.category} onChange={(e) => setItemState({...itemState, category: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">{Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}</select>
+                        
+                        <div className="flex items-center space-x-2">
+                            <input id="isRecurring" type="checkbox" checked={itemState.isRecurring} onChange={handleRecurringChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded"/>
+                            <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">Tâche récurrente</label>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">{itemState.isRecurring ? "Dernier entretien" : "Date d'échéance"}</label>
+                            <input name="lastMaintenance" type="date" value={itemState.lastMaintenance} onChange={(e) => setItemState({...itemState, lastMaintenance: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
+                        </div>
+
+                        {itemState.isRecurring && (
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Fréquence (jours)</label>
+                                <input name="intervalDays" type="number" value={itemState.intervalDays} onChange={(e) => setItemState({...itemState, intervalDays: e.target.value})} placeholder="Ex: 365" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
+                            </div>
+                        )}
+                        
+                        <textarea name="notes" value={itemState.notes} onChange={(e) => setItemState({...itemState, notes: e.target.value})} placeholder="Notes (optionnel)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24"></textarea>
+                        <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">
+                            {buttonText}
+                        </button>
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        };
 
         const DetailsView = ({ item, history }) => {
             const itemHistory = history.filter(h => h.originalId === item.id).sort((a,b) => new Date(b.completedAt) - new Date(a.completedAt));
@@ -200,24 +237,22 @@
             );
         };
         
-        const FilterView = ({ filter, setFilter, navigateTo, lastMainView }) => {
-            return (
-                <div className="p-4 animate-fade-in">
-                    <div className="space-y-3">
-                        <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="all" checked={filter === 'all'} onChange={() => {setFilter('all'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-blue-600"/><span>Toutes les tâches</span></label>
-                        <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="urgent" checked={filter === 'urgent'} onChange={() => {setFilter('urgent'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-red-600"/><AlertTriangle className="h-5 w-5 text-red-500" /><span>Urgences</span></label>
-                        {Object.entries(categories).map(([key, cat]) => {
-                            const CategoryIcon = cat.icon;
-                            return (<label key={key} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer">
-                                <input type="radio" name="filter" value={key} checked={filter === key} onChange={() => {setFilter(key); navigateTo(lastMainView);}} className="form-radio h-5 w-5"/>
-                                <CategoryIcon className="h-5 w-5 text-gray-600" />
-                                <span>{cat.label}</span>
-                            </label>)
-                        })}
-                    </div>
+        const FilterView = ({ filter, setFilter, navigateTo, lastMainView }) => (
+            <div className="p-4 animate-fade-in">
+                <div className="space-y-3">
+                    <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="all" checked={filter === 'all'} onChange={() => {setFilter('all'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-blue-600"/><span>Toutes les tâches</span></label>
+                    <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="urgent" checked={filter === 'urgent'} onChange={() => {setFilter('urgent'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-red-600"/><AlertTriangle className="h-5 w-5 text-red-500" /><span>Urgences</span></label>
+                    {Object.entries(categories).map(([key, cat]) => {
+                        const CategoryIcon = cat.icon;
+                        return (<label key={key} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer">
+                            <input type="radio" name="filter" value={key} checked={filter === key} onChange={() => {setFilter(key); navigateTo(lastMainView);}} className="form-radio h-5 w-5"/>
+                            <CategoryIcon className="h-5 w-5 text-gray-600" />
+                            <span>{cat.label}</span>
+                        </label>)
+                    })}
                 </div>
-            );
-        };
+            </div>
+        );
         
         const PageView = ({ items, view, searchQuery, filter, ...props }) => {
             const emptyStates = {
@@ -240,20 +275,6 @@
             }
 
             return (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} /> : <ItemCard key={item.id} item={item} {...props} />)}</div>);
-        };
-        
-        const ActiveFilterBanner = ({ filter, onClear }) => {
-            const filterLabel = filter === 'urgent' ? 'Urgences' : categories[filter]?.label;
-            if (!filterLabel) return null;
-
-            return (
-                <div className="flex items-center justify-between p-3 mb-4 bg-blue-100 text-blue-800 rounded-lg animate-fade-in">
-                    <span className="font-medium">Filtre actif : {filterLabel}</span>
-                    <button onClick={onClear} className="p-1 rounded-full hover:bg-blue-200">
-                        <XCircle className="w-5 h-5" />
-                    </button>
-                </div>
-            );
         };
         
         const SettingsView = ({ requestNotificationPermission, notificationStatus }) => {
@@ -343,7 +364,10 @@
         const MobileMaintenanceApp = () => {
             const getTodayDateString = () => new Date().toISOString().split('T')[0];
         
-            const [items, setItems] = useState(() => JSON.parse(localStorage.getItem('maintenanceItems_v2')) || []);
+            const [items, setItems] = useState(() => {
+                const savedItems = JSON.parse(localStorage.getItem('maintenanceItems_v3')) || [];
+                return savedItems.map(item => ({ ...item, isRecurring: item.isRecurring === undefined ? true : item.isRecurring }));
+            });
             const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
             const [currentView, setCurrentView] = useState('today');
             const lastMainView = useRef('today');
@@ -353,11 +377,11 @@
             const [justCompleted, setJustCompleted] = useState(null);
             const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
             const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
-            const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '' });
+            const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '30', notes: '', isRecurring: true });
             const [searchQuery, setSearchQuery] = useState('');
             const [notificationStatus, setNotificationStatus] = useState(Notification.permission);
 
-            useEffect(() => { localStorage.setItem('maintenanceItems_v2', JSON.stringify(items)); }, [items]);
+            useEffect(() => { localStorage.setItem('maintenanceItems_v3', JSON.stringify(items)); }, [items]);
             useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
             
             useEffect(() => {
@@ -404,38 +428,47 @@
             const getNextMaintenanceDate = (lastDate, intervalDays) => { const last = new Date(lastDate); const next = new Date(last); next.setDate(last.getDate() + parseInt(intervalDays, 10)); return next; };
             
             const markAsDone = (id) => {
-                let itemToComplete;
-                const newItems = items.map(item => {
-                    if (item.id === id) {
-                        itemToComplete = { ...item };
-                        const now = new Date();
-                        item.lastMaintenance = now.toISOString().split('T')[0];
-                        item.nextMaintenance = getNextMaintenanceDate(now, item.intervalDays).toISOString();
-                        setJustCompleted(id);
-                        setTimeout(() => setJustCompleted(null), 2000);
-                    }
-                    return item;
-                });
-                setItems(newItems);
+                const itemToComplete = items.find(item => item.id === id);
+                if (!itemToComplete) return;
 
-                if (itemToComplete) {
+                setHistory(currentHistory => {
                     const todayString = new Date().toISOString().split('T')[0];
-                    setHistory(currentHistory => {
-                        const existingHistoryIndex = currentHistory.findIndex(histItem => histItem.originalId === itemToComplete.id && histItem.completedAt.startsWith(todayString));
-                        if (existingHistoryIndex !== -1) {
-                            const updatedHistory = [...currentHistory];
-                            updatedHistory[existingHistoryIndex].completedAt = new Date().toISOString();
-                            return updatedHistory;
-                        } else {
-                            const newHistoryEntry = { ...itemToComplete, id: Date.now(), originalId: itemToComplete.id, completedAt: new Date().toISOString() };
-                            return [newHistoryEntry, ...currentHistory];
+                    const existingHistoryIndex = currentHistory.findIndex(histItem => histItem.originalId === itemToComplete.id && histItem.completedAt.startsWith(todayString));
+                    if (existingHistoryIndex !== -1) {
+                        const updatedHistory = [...currentHistory];
+                        updatedHistory[existingHistoryIndex].completedAt = new Date().toISOString();
+                        return updatedHistory;
+                    } else {
+                        const newHistoryEntry = { ...itemToComplete, id: Date.now(), originalId: itemToComplete.id, completedAt: new Date().toISOString() };
+                        return [newHistoryEntry, ...currentHistory];
+                    }
+                });
+
+                if (itemToComplete.isRecurring) {
+                    setItems(currentItems => currentItems.map(item => {
+                        if (item.id === id) {
+                            const now = new Date();
+                            return { ...item, lastMaintenance: now.toISOString().split('T')[0], nextMaintenance: getNextMaintenanceDate(now, item.intervalDays).toISOString() };
                         }
-                    });
+                        return item;
+                    }));
+                } else {
+                    setItems(currentItems => currentItems.filter(item => item.id !== id));
                 }
+                setJustCompleted(id);
+                setTimeout(() => setJustCompleted(null), 2000);
             };
             
-            const addItem = () => { if (!newItem.name || !newItem.lastMaintenance || !newItem.intervalDays) return; const itemToAdd = { id: Date.now(), ...newItem, intervalDays: parseInt(newItem.intervalDays, 10), nextMaintenance: getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString() }; setItems(currentItems => [...currentItems, itemToAdd]); setNewItem({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '' }); navigateTo('today'); };
-            const startEdit = (item) => { setEditingItem({ ...item, lastMaintenance: new Date(item.lastMaintenance).toISOString().split('T')[0] }); navigateTo('edit'); };
+            const addItem = () => {
+                if (!newItem.name || !newItem.lastMaintenance || (newItem.isRecurring && !newItem.intervalDays)) { alert("Veuillez remplir tous les champs requis."); return; }
+                const nextMaintenance = newItem.isRecurring ? getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString() : new Date(newItem.lastMaintenance).toISOString();
+                const itemToAdd = { id: Date.now(), ...newItem, nextMaintenance, intervalDays: newItem.isRecurring ? parseInt(newItem.intervalDays, 10) : null };
+                setItems(currentItems => [...currentItems, itemToAdd]);
+                setNewItem({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '30', notes: '', isRecurring: true });
+                navigateTo('today');
+            };
+
+            const startEdit = (item) => { setEditingItem({ ...item, lastMaintenance: new Date(item.nextMaintenance).toISOString().split('T')[0] }); navigateTo('edit'); };
             const saveEdit = () => { if (!editingItem) return; const updatedItem = { ...editingItem, intervalDays: parseInt(editingItem.intervalDays, 10), nextMaintenance: getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString() }; setItems(currentItems => currentItems.map(i => i.id === editingItem.id ? updatedItem : i)); setEditingItem(null); navigateTo('today'); };
             const deleteItem = (id) => { setItems(items.filter(item => item.id !== id)); setHistory(history.filter(item => item.originalId !== id)); setShowDeleteConfirm(null);};
             const clearHistory = () => { setHistory([]); setShowClearHistoryConfirm(false); };
