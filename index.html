@@ -122,7 +122,6 @@
         const UrgentBanner = ({ count }) => (<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"><div className="flex items-center gap-2 text-red-700"><AlertTriangle /><span className="font-medium">{count} élément{count > 1 ? 's' : ''} urgent{count > 1 ? 's' : ''}</span></div></div>);
         const DeleteConfirmModal = ({ item, onCancel, onDelete }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer "{item?.name}" ?</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onDelete} className="px-4 py-2 bg-red-600 text-white rounded-md">Supprimer</button></div></div></div>);
         const ClearHistoryConfirmModal = ({ onCancel, onConfirm }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Vider l'historique</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-md">Vider</button></div></div></div>);
-        
         const Footer = ({ currentView, setCurrentView }) => (
             <footer className="bg-white border-t border-gray-200 p-2 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
                 <button onClick={() => setCurrentView('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500'}`}><HomeIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button>
@@ -228,25 +227,33 @@
             return (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} /> : <ItemCard key={item.id} item={item} {...props} />)}</div>);
         };
         
-        const SettingsView = ({ requestNotificationPermission, notificationStatus }) => (
-            <div className="p-4 animate-fade-in">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Réglages</h2>
-                <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="font-semibold mb-2">Notifications</h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                        Activez les notifications pour recevoir des rappels sur les entretiens à venir.
-                        <br/>
-                        Statut actuel : <span className="font-semibold">{notificationStatus}</span>
-                    </p>
-                    <button 
-                        onClick={requestNotificationPermission}
-                        disabled={notificationStatus === 'granted'}
-                        className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                        {notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}
-                    </button>
+        const SettingsView = ({ requestNotificationPermission, notificationStatus }) => {
+            const getFriendlyStatus = (status) => {
+                if (status === 'granted') return 'Activé';
+                if (status === 'denied') return 'Refusé';
+                return 'Désactivé';
+            };
+            const statusText = getFriendlyStatus(notificationStatus);
+            return (
+                <div className="p-4 animate-fade-in">
+                    <h2 className="text-xl font-bold mb-4 text-gray-800">Réglages</h2>
+                    <div className="bg-white p-4 rounded-lg shadow">
+                        <h3 className="font-semibold mb-2">Notifications</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Activez les notifications pour recevoir des rappels sur les entretiens à venir.
+                            <br/>
+                            Statut actuel : <span className="font-semibold">{statusText}</span>
+                        </p>
+                        <button 
+                            onClick={requestNotificationPermission}
+                            disabled={notificationStatus === 'granted'}
+                            className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            {notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}
+                        </button>
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        };
 
         const AppUI = ({
             items, history, currentView, setCurrentView, detailedItem, showDetails,
@@ -338,7 +345,7 @@
                     });
                 }
             };
-
+            
             const getNextMaintenanceDate = (lastDate, intervalDays) => { const last = new Date(lastDate); const next = new Date(last); next.setDate(last.getDate() + parseInt(intervalDays, 10)); return next; };
             
             const markAsDone = (id) => {
