@@ -80,6 +80,7 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const nextDateObj = new Date(nextDate); nextDateObj.setHours(0,0,0,0);
             const diffDays = Math.ceil((nextDateObj - today) / (1000 * 60 * 60 * 24));
+            
             if (status === 'overdue') return `Retard de ${Math.abs(diffDays)} j`;
             if (diffDays === 0) return "Aujourd'hui";
             if (diffDays === 1) return "Demain";
@@ -326,32 +327,28 @@
             useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
             
             useEffect(() => {
-                if (notificationStatus !== 'granted') return;
+                const handleVisibilityChange = () => {
+                    if (document.visibilityState === 'hidden' && notificationStatus === 'granted') {
+                        const lastNotificationDate = localStorage.getItem('lastNotificationDate');
+                        const today = getTodayDateString();
+                        if (lastNotificationDate === today) return;
 
-                const lastNotificationDate = localStorage.getItem('lastNotificationDate');
-                const today = getTodayDateString();
-
-                if (lastNotificationDate === today) return;
-
-                const urgentItems = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent');
-
-                if (urgentItems.length > 0) {
-                    let title = "Rappel d'entretien";
-                    let body = `Vous avez ${urgentItems.length} tâches urgentes ou en retard.`;
-                    
-                    if (urgentItems.length === 1) {
-                        body = `${urgentItems[0].name} est à faire bientôt !`;
+                        const urgentItems = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent');
+                        if (urgentItems.length > 0) {
+                            let title = "Rappel d'entretien";
+                            let body = `Vous avez ${urgentItems.length} tâches urgentes ou en retard.`;
+                            if (urgentItems.length === 1) {
+                                body = `${urgentItems[0].name} est à faire bientôt !`;
+                            }
+                            navigator.serviceWorker.ready.then(registration => {
+                                registration.showNotification(title, { body, icon: './icon-192.png', badge: './icon-96.png' });
+                                localStorage.setItem('lastNotificationDate', today);
+                            });
+                        }
                     }
-
-                    navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification(title, {
-                            body: body,
-                            icon: './icon-192.png',
-                            badge: './icon-96.png'
-                        });
-                        localStorage.setItem('lastNotificationDate', today);
-                    });
-                }
+                };
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                return () => { document.removeEventListener('visibilitychange', handleVisibilityChange); };
             }, [items, notificationStatus]);
 
             const requestNotificationPermission = async () => {
@@ -359,7 +356,6 @@
                     alert("Ce navigateur ne supporte pas les notifications.");
                     return;
                 }
-
                 const permission = await Notification.requestPermission();
                 setNotificationStatus(permission);
 
