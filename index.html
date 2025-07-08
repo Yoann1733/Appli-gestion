@@ -63,7 +63,7 @@
             const nextDate = new Date(nextDateStr); nextDate.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
             if (diffDays < 0) return 'overdue';
-            if (diffDays <= 7) return 'urgent';
+            if (diffDays <= 1) return 'urgent'; // MODIFIÉ : Urgent si c'est aujourd'hui ou demain
             return 'ok';
         };
 
@@ -79,8 +79,10 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const nextDateObj = new Date(nextDate); nextDateObj.setHours(0,0,0,0);
             const diffDays = Math.ceil((nextDateObj - today) / (1000 * 60 * 60 * 24));
+            
             if (status === 'overdue') return `Retard de ${Math.abs(diffDays)} j`;
             if (diffDays === 0) return "Aujourd'hui";
+            if (diffDays === 1) return "Demain";
             return `Dans ${diffDays} j`;
         };
         
