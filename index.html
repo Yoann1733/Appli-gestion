@@ -388,7 +388,7 @@
             const [justCompleted, setJustCompleted] = useState(null);
             const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
             const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
-            const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '30', notes: '', isRecurring: true });
+            const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '', isRecurring: true });
             const [searchQuery, setSearchQuery] = useState('');
             const [notificationStatus, setNotificationStatus] = useState(Notification.permission);
 
@@ -408,12 +408,9 @@
                             let body = `Vous avez ${urgentItems.length} tâches urgentes ou en retard.`;
                             if (urgentItems.length === 1) { body = `${urgentItems[0].name} est à faire bientôt !`; }
                             navigator.serviceWorker.ready.then(registration => {
-                            registration.showNotification(title, {
-                                body: body,
-                                vibrate: [200] // Ajoute une simple vibration
+                                registration.showNotification(title, { body, vibrate: [200] });
+                                localStorage.setItem('lastNotificationDate', today);
                             });
-                            localStorage.setItem('lastNotificationDate', today);
-                        });
                         }
                     }
                 };
@@ -478,7 +475,7 @@
                 const nextMaintenance = newItem.isRecurring ? getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString() : new Date(newItem.lastMaintenance).toISOString();
                 const itemToAdd = { id: Date.now(), ...newItem, nextMaintenance, intervalDays: newItem.isRecurring ? parseInt(newItem.intervalDays, 10) : null };
                 setItems(currentItems => [...currentItems, itemToAdd]);
-                setNewItem({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '30', notes: '', isRecurring: true });
+                setNewItem({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '', isRecurring: true });
                 navigateTo('today');
             };
 
