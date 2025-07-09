@@ -408,9 +408,12 @@
                             let body = `Vous avez ${urgentItems.length} tâches urgentes ou en retard.`;
                             if (urgentItems.length === 1) { body = `${urgentItems[0].name} est à faire bientôt !`; }
                             navigator.serviceWorker.ready.then(registration => {
-                                registration.showNotification(title, { body, icon: './icon-192.png', badge: './icon-96.png' });
-                                localStorage.setItem('lastNotificationDate', today);
+                            registration.showNotification(title, {
+                                body: body,
+                                vibrate: [200] // Ajoute une simple vibration
                             });
+                            localStorage.setItem('lastNotificationDate', today);
+                        });
                         }
                     }
                 };
