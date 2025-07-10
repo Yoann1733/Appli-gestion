@@ -50,15 +50,15 @@
         const Filter = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>);
         const XCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>);
 
-        const categories = {
-            voiture: { icon: Car, label: 'Voiture', bgClass: 'bg-green-100' },
-            electromenager: { icon: Wrench, label: 'Électroménager', bgClass: 'bg-blue-100' },
-            maison: { icon: HomeIcon, label: 'Maison', bgClass: 'bg-purple-100' },
-            jardin: { icon: Flower, label: 'Jardin', bgClass: 'bg-emerald-100' },
-            cuisine: { icon: Utensils, label: 'Cuisine', bgClass: 'bg-pink-100' },
-            sdb: { icon: Bath, label: 'Salle de bain', bgClass: 'bg-cyan-100' },
-            chambre: { icon: Bed, label: 'Chambre', bgClass: 'bg-indigo-100' },
-            autres: { icon: Bell, label: 'Autres', bgClass: 'bg-gray-200' },
+        const defaultCategories = {
+            voiture: { icon: Car, label: 'Voiture', bgClass: 'bg-green-100', isDefault: true },
+            electromenager: { icon: Wrench, label: 'Électroménager', bgClass: 'bg-blue-100', isDefault: true },
+            maison: { icon: HomeIcon, label: 'Maison', bgClass: 'bg-purple-100', isDefault: true },
+            jardin: { icon: Flower, label: 'Jardin', bgClass: 'bg-emerald-100', isDefault: true },
+            cuisine: { icon: Utensils, label: 'Cuisine', bgClass: 'bg-pink-100', isDefault: true },
+            sdb: { icon: Bath, label: 'Salle de bain', bgClass: 'bg-cyan-100', isDefault: true },
+            chambre: { icon: Bed, label: 'Chambre', bgClass: 'bg-indigo-100', isDefault: true },
+            autres: { icon: Bell, label: 'Autres', bgClass: 'bg-gray-200', isDefault: true },
         };
         
         const getStatus = (nextDateStr) => {
@@ -122,7 +122,7 @@
             </footer>
         );
         
-        const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails }) => {
+        const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails, categories }) => {
             const category = categories[item.category] || categories.autres;
             const status = getStatus(item.nextMaintenance);
             const [textColor, bgColor, borderColor] = getStatusColorClasses(status).split(" ");
@@ -161,13 +161,13 @@
             );
         };
         
-        const HistoryCard = ({ item }) => {
+        const HistoryCard = ({ item, categories }) => {
             const category = categories[item.category] || categories.autres;
             const completedDate = new Date(item.completedAt);
             return (<div className="bg-white rounded-lg shadow-md border-l-4 border-green-500 animate-fade-in"><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon /></div><div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div></div><p className="text-sm text-gray-600 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
         };
 
-        const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText }) => {
+        const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText, categories }) => {
             const handleRecurringChange = (e) => {
                 const isRecurring = e.target.checked;
                 setItemState({ ...itemState, isRecurring, intervalDays: isRecurring ? itemState.intervalDays : '' });
@@ -206,7 +206,7 @@
             );
         };
 
-        const DetailsView = ({ item, history }) => {
+        const DetailsView = ({ item, history, categories }) => {
             const itemHistory = history.filter(h => h.originalId === item.id).sort((a,b) => new Date(b.completedAt) - new Date(a.completedAt));
             const category = categories[item.category] || categories.autres;
             return (
@@ -234,7 +234,7 @@
             );
         };
         
-        const FilterView = ({ filter, setFilter, navigateTo, lastMainView }) => (
+        const FilterView = ({ filter, setFilter, navigateTo, lastMainView, categories }) => (
             <div className="p-4 animate-fade-in">
                 <div className="space-y-3">
                     <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="all" checked={filter === 'all'} onChange={() => {setFilter('all'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-blue-600"/><span>Toutes les tâches</span></label>
@@ -251,7 +251,7 @@
             </div>
         );
         
-        const PageView = ({ items, view, searchQuery, filter, ...props }) => {
+        const PageView = ({ items, view, searchQuery, filter, categories, ...props }) => {
             const emptyStates = {
                 today: { icon: CheckCircle, text: "Rien à faire aujourd'hui !", subtext: "Profitez de votre journée." },
                 upcoming: { icon: Clock, text: "Aucune tâche à prévoir.", subtext: "Ajoutez de nouveaux éléments." },
@@ -271,10 +271,10 @@
                 return (<div className="text-center py-12"><EmptyIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" /><p className="text-gray-500 text-lg mb-2">{text}</p><p className="text-gray-400">{subtext}</p></div>);
             }
 
-            return (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} /> : <ItemCard key={item.id} item={item} {...props} />)}</div>);
+            return (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} categories={categories}/> : <ItemCard key={item.id} item={item} {...props} categories={categories} />)}</div>);
         };
         
-        const SettingsView = ({ requestNotificationPermission, notificationStatus }) => {
+        const SettingsView = ({ requestNotificationPermission, notificationStatus, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory }) => {
             const getFriendlyStatus = (status) => {
                 if (status === 'granted') return 'Activé';
                 if (status === 'denied') return 'Refusé';
@@ -282,36 +282,47 @@
             };
             const statusText = getFriendlyStatus(notificationStatus);
             return (
-                <div className="p-4 animate-fade-in">
-                    <h2 className="text-xl font-bold mb-4 text-gray-800">Réglages</h2>
-                    <div className="bg-white p-4 rounded-lg shadow">
-                        <h3 className="font-semibold mb-2">Notifications</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                            Activez les notifications pour recevoir des rappels sur les entretiens à venir.
-                            <br/>
-                            Statut actuel : <span className="font-semibold">{statusText}</span>
-                        </p>
-                        <button 
-                            onClick={requestNotificationPermission}
-                            disabled={notificationStatus === 'granted'}
-                            className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                            {notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}
-                        </button>
+                <div className="p-4 animate-fade-in space-y-6">
+                    <div>
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Réglages</h2>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="font-semibold mb-2">Notifications</h3>
+                            <p className="text-sm text-gray-600 mb-4">Statut actuel : <span className="font-semibold">{statusText}</span></p>
+                            <button onClick={requestNotificationPermission} disabled={notificationStatus === 'granted'} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}</button>
+                        </div>
+                    </div>
+                     <div>
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Gérer les catégories</h2>
+                        <div className="bg-white p-4 rounded-lg shadow space-y-3">
+                           {Object.entries(categories).map(([key, cat]) => (
+                               <div key={key} className="flex items-center justify-between p-2 border-b">
+                                   <div className="flex items-center gap-3">
+                                       <cat.icon className="w-5 h-5 text-gray-600" />
+                                       <span>{cat.label}</span>
+                                   </div>
+                                   {!cat.isDefault && (
+                                       <button onClick={() => deleteCategory(key)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+                                   )}
+                               </div>
+                           ))}
+                           <div className="flex gap-2 pt-4">
+                               <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nom de la nouvelle catégorie" className="flex-grow mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"/>
+                               <button onClick={addCategory} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">Ajouter</button>
+                           </div>
+                        </div>
                     </div>
                 </div>
             );
         };
         
-        const ActiveFilterBanner = ({ filter, onClear }) => {
+        const ActiveFilterBanner = ({ filter, onClear, categories }) => {
             const filterLabel = filter === 'urgent' ? 'Urgences' : categories[filter]?.label;
             if (!filterLabel) return null;
 
             return (
                 <div className="flex items-center justify-between p-3 mb-4 bg-blue-100 text-blue-800 rounded-lg animate-fade-in">
                     <span className="font-medium">Filtre actif : {filterLabel}</span>
-                    <button onClick={onClear} className="p-1 rounded-full hover:bg-blue-200">
-                        <XCircle className="w-5 h-5" />
-                    </button>
+                    <button onClick={onClear} className="p-1 rounded-full hover:bg-blue-200"><XCircle className="w-5 h-5" /></button>
                 </div>
             );
         };
@@ -322,7 +333,7 @@
             showDeleteConfirm, setShowDeleteConfirm, showClearHistoryConfirm, setShowClearHistoryConfirm, 
             addItem, startEdit, saveEdit, markAsDone, deleteItem, clearHistory,
             searchQuery, setSearchQuery, requestNotificationPermission, notificationStatus,
-            filter, setFilter
+            filter, setFilter, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory
         }) => {
             const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
 
@@ -353,17 +364,17 @@
                     <main className="flex-grow overflow-y-auto p-4 pb-20">
                         {urgentCount > 0 && (currentView === 'today' || currentView === 'upcoming') && <UrgentBanner count={urgentCount} />}
                         {(currentView === 'today' || currentView === 'upcoming') && <SearchBar query={searchQuery} setQuery={setSearchQuery} />}
-                        {(currentView === 'today' || currentView === 'upcoming') && filter !== 'all' && <ActiveFilterBanner filter={filter} onClear={() => setFilter('all')} />}
+                        {(currentView === 'today' || currentView === 'upcoming') && filter !== 'all' && <ActiveFilterBanner filter={filter} onClear={() => setFilter('all')} categories={categories}/>}
                         
-                        {currentView === 'today' && <PageView items={getVisibleItems('today')} view="today" searchQuery={searchQuery} filter={filter} showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} />}
-                        {currentView === 'upcoming' && <PageView items={getVisibleItems('upcoming')} view="upcoming" searchQuery={searchQuery} filter={filter} showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} />}
-                        {currentView === 'history' && <PageView items={getVisibleItems('history')} view="history" />}
-                        {currentView === 'details' && detailedItem && <DetailsView item={detailedItem} history={history} />}
-                        {currentView === 'settings' && <SettingsView requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus} />}
-                        {currentView === 'filters' && <FilterView filter={filter} setFilter={setFilter} navigateTo={navigateTo} lastMainView={lastMainView} />}
+                        {currentView === 'today' && <PageView items={getVisibleItems('today')} view="today" searchQuery={searchQuery} filter={filter} showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} categories={categories}/>}
+                        {currentView === 'upcoming' && <PageView items={getVisibleItems('upcoming')} view="upcoming" searchQuery={searchQuery} filter={filter} showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} categories={categories}/>}
+                        {currentView === 'history' && <PageView items={getVisibleItems('history')} view="history" categories={categories}/>}
+                        {currentView === 'details' && detailedItem && <DetailsView item={detailedItem} history={history} categories={categories} />}
+                        {currentView === 'settings' && <SettingsView requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus} categories={categories} addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory}/>}
+                        {currentView === 'filters' && <FilterView filter={filter} setFilter={setFilter} navigateTo={navigateTo} lastMainView={lastMainView} categories={categories}/>}
 
-                        {currentView === 'add' && <ItemForm key="add" onSubmit={addItem} itemState={newItem} setItemState={setNewItem} title="Ajouter un nouvel élément" buttonText="Ajouter l'élément"/>}
-                        {currentView === 'edit' && editingItem && <ItemForm key="edit" onSubmit={saveEdit} itemState={editingItem} setItemState={setEditingItem} title="Modifier l'élément" buttonText="Enregistrer"/>}
+                        {currentView === 'add' && <ItemForm key="add" onSubmit={addItem} itemState={newItem} setItemState={setNewItem} title="Ajouter un nouvel élément" buttonText="Ajouter l'élément" categories={categories}/>}
+                        {currentView === 'edit' && editingItem && <ItemForm key="edit" onSubmit={saveEdit} itemState={editingItem} setItemState={setEditingItem} title="Modifier l'élément" buttonText="Enregistrer" categories={categories}/>}
                     </main>
                     {showDeleteConfirm && <DeleteConfirmModal item={items.find(i => i.id === showDeleteConfirm)} onCancel={() => setShowDeleteConfirm(null)} onDelete={() => deleteItem(showDeleteConfirm)} />}
                     {showClearHistoryConfirm && <ClearHistoryConfirmModal onCancel={() => setShowClearHistoryConfirm(false)} onConfirm={clearHistory} />}
@@ -380,6 +391,10 @@
                 return savedItems.map(item => ({ ...item, isRecurring: item.isRecurring === undefined ? true : item.isRecurring }));
             });
             const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
+            const [categories, setCategories] = useState(() => {
+                const saved = localStorage.getItem('maintenanceCategories_v1');
+                return saved ? JSON.parse(saved) : defaultCategories;
+            });
             const [currentView, setCurrentView] = useState('today');
             const lastMainView = useRef('today');
             const [detailedItem, setDetailedItem] = useState(null);
@@ -389,11 +404,13 @@
             const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
             const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
             const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '', isRecurring: true });
+            const [newCategoryName, setNewCategoryName] = useState('');
             const [searchQuery, setSearchQuery] = useState('');
             const [notificationStatus, setNotificationStatus] = useState(Notification.permission);
 
             useEffect(() => { localStorage.setItem('maintenanceItems_v3', JSON.stringify(items)); }, [items]);
             useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
+            useEffect(() => { localStorage.setItem('maintenanceCategories_v1', JSON.stringify(categories)); }, [categories]);
             
             useEffect(() => {
                 const handleVisibilityChange = () => {
@@ -499,6 +516,31 @@
             const clearHistory = () => { setHistory([]); setShowClearHistoryConfirm(false); };
             const showDetails = (item) => { setDetailedItem(item); navigateTo('details'); };
 
+            const addCategory = () => {
+                if (!newCategoryName.trim()) { alert("Le nom de la catégorie ne peut pas être vide."); return; }
+                const newKey = newCategoryName.trim().toLowerCase().replace(/\s+/g, '_');
+                if (categories[newKey]) { alert("Cette catégorie existe déjà."); return; }
+                
+                const colorPalette = ['bg-red-100', 'bg-yellow-100', 'bg-teal-100', 'bg-orange-100', 'bg-lime-100'];
+                const randomBg = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+
+                const newCategory = { [newKey]: { icon: Wrench, label: newCategoryName.trim(), bgClass: randomBg, isDefault: false }};
+                setCategories(prev => ({...prev, ...newCategory}));
+                setNewCategoryName('');
+            };
+
+            const deleteCategory = (keyToDelete) => {
+                if (categories[keyToDelete]?.isDefault) return;
+                const newCategories = {...categories};
+                delete newCategories[keyToDelete];
+                const updatedItems = items.map(item => {
+                    if (item.category === keyToDelete) { return { ...item, category: 'autres' }; }
+                    return item;
+                });
+                setCategories(newCategories);
+                setItems(updatedItems);
+            };
+
             return (
                 <AppUI
                     items={items} history={history} currentView={currentView} navigateTo={navigateTo} lastMainView={lastMainView.current} detailedItem={detailedItem} showDetails={showDetails}
@@ -509,6 +551,7 @@
                     clearHistory={clearHistory} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                     requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus}
                     filter={filter} setFilter={setFilter}
+                    categories={categories} addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory}
                 />
             );
         };
