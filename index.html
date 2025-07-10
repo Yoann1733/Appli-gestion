@@ -50,15 +50,17 @@
         const Filter = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>);
         const XCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>);
 
+        const ICONS = { Car, Wrench, HomeIcon, Flower, Utensils, Bath, Bed, Bell };
+        
         const defaultCategories = {
-            voiture: { icon: Car, label: 'Voiture', bgClass: 'bg-green-100', isDefault: true },
-            electromenager: { icon: Wrench, label: 'Électroménager', bgClass: 'bg-blue-100', isDefault: true },
-            maison: { icon: HomeIcon, label: 'Maison', bgClass: 'bg-purple-100', isDefault: true },
-            jardin: { icon: Flower, label: 'Jardin', bgClass: 'bg-emerald-100', isDefault: true },
-            cuisine: { icon: Utensils, label: 'Cuisine', bgClass: 'bg-pink-100', isDefault: true },
-            sdb: { icon: Bath, label: 'Salle de bain', bgClass: 'bg-cyan-100', isDefault: true },
-            chambre: { icon: Bed, label: 'Chambre', bgClass: 'bg-indigo-100', isDefault: true },
-            autres: { icon: Bell, label: 'Autres', bgClass: 'bg-gray-200', isDefault: true },
+            voiture: { icon: 'Car', label: 'Voiture', bgClass: 'bg-green-100', isDefault: true },
+            electromenager: { icon: 'Wrench', label: 'Électroménager', bgClass: 'bg-blue-100', isDefault: true },
+            maison: { icon: 'HomeIcon', label: 'Maison', bgClass: 'bg-purple-100', isDefault: true },
+            jardin: { icon: 'Flower', label: 'Jardin', bgClass: 'bg-emerald-100', isDefault: true },
+            cuisine: { icon: 'Utensils', label: 'Cuisine', bgClass: 'bg-pink-100', isDefault: true },
+            sdb: { icon: 'Bath', label: 'Salle de bain', bgClass: 'bg-cyan-100', isDefault: true },
+            chambre: { icon: 'Bed', label: 'Chambre', bgClass: 'bg-indigo-100', isDefault: true },
+            autres: { icon: 'Bell', label: 'Autres', bgClass: 'bg-gray-200', isDefault: true },
         };
         
         const getStatus = (nextDateStr) => {
@@ -124,6 +126,7 @@
         
         const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails, categories }) => {
             const category = categories[item.category] || categories.autres;
+            const IconComponent = ICONS[category.icon] || Bell;
             const status = getStatus(item.nextMaintenance);
             const [textColor, bgColor, borderColor] = getStatusColorClasses(status).split(" ");
             
@@ -132,7 +135,7 @@
                     <div onClick={() => showDetails(item)} className="p-4 cursor-pointer">
                         <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon/></div>
+                                <div className={`p-2 rounded-lg ${category.bgClass}`}><IconComponent/></div>
                                 <div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div>
                             </div>
                             <div className="flex gap-1 ml-2">
@@ -163,8 +166,9 @@
         
         const HistoryCard = ({ item, categories }) => {
             const category = categories[item.category] || categories.autres;
+            const IconComponent = ICONS[category.icon] || Bell;
             const completedDate = new Date(item.completedAt);
-            return (<div className="bg-white rounded-lg shadow-md border-l-4 border-green-500 animate-fade-in"><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${category.bgClass}`}><category.icon /></div><div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div></div><p className="text-sm text-gray-600 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
+            return (<div className="bg-white rounded-lg shadow-md border-l-4 border-green-500 animate-fade-in"><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${category.bgClass}`}><IconComponent /></div><div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div></div><p className="text-sm text-gray-600 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
         };
 
         const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText, categories }) => {
@@ -209,10 +213,12 @@
         const DetailsView = ({ item, history, categories }) => {
             const itemHistory = history.filter(h => h.originalId === item.id).sort((a,b) => new Date(b.completedAt) - new Date(a.completedAt));
             const category = categories[item.category] || categories.autres;
+            const IconComponent = ICONS[category.icon] || Bell;
+
             return (
                 <div className="bg-white text-gray-800 rounded-lg shadow-lg p-6 animate-fade-in">
                     <div className="flex items-center gap-4 mb-4 pb-4 border-b">
-                        <div className={`p-3 rounded-lg ${category.bgClass}`}><category.icon /></div>
+                        <div className={`p-3 rounded-lg ${category.bgClass}`}><IconComponent /></div>
                         <div><h2 className="text-2xl font-bold ">{item.name}</h2><p className="text-gray-500">{category.label}</p></div>
                     </div>
                     <div className="space-y-2 text-sm mb-6">
@@ -240,7 +246,7 @@
                     <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="all" checked={filter === 'all'} onChange={() => {setFilter('all'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-blue-600"/><span>Toutes les tâches</span></label>
                     <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="urgent" checked={filter === 'urgent'} onChange={() => {setFilter('urgent'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-red-600"/><AlertTriangle className="h-5 w-5 text-red-500" /><span>Urgences</span></label>
                     {Object.entries(categories).map(([key, cat]) => {
-                        const CategoryIcon = cat.icon;
+                        const CategoryIcon = ICONS[cat.icon] || Bell;
                         return (<label key={key} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer">
                             <input type="radio" name="filter" value={key} checked={filter === key} onChange={() => {setFilter(key); navigateTo(lastMainView);}} className="form-radio h-5 w-5"/>
                             <CategoryIcon className="h-5 w-5 text-gray-600" />
@@ -264,7 +270,7 @@
                 }
                 if (filter && filter !== 'all' && filter !== 'urgent') {
                     const categoryName = categories[filter]?.label || '';
-                    const EmptyIcon = categories[filter]?.icon || Clock;
+                    const EmptyIcon = ICONS[categories[filter]?.icon] || Clock;
                     return (<div className="text-center py-12"><EmptyIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" /><p className="text-gray-500 text-lg mb-2">Aucune tâche dans "{categoryName}"</p><p className="text-gray-400">Ajoutez-en une ou changez de filtre.</p></div>);
                 }
                 const { icon: EmptyIcon, text, subtext } = emptyStates[view];
@@ -274,7 +280,7 @@
             return (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} categories={categories}/> : <ItemCard key={item.id} item={item} {...props} categories={categories} />)}</div>);
         };
         
-        const SettingsView = ({ requestNotificationPermission, notificationStatus, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory }) => {
+        const SettingsView = ({ requestNotificationPermission, notificationStatus, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory, newCategoryIcon, setNewCategoryIcon }) => {
             const getFriendlyStatus = (status) => {
                 if (status === 'granted') return 'Activé';
                 if (status === 'denied') return 'Refusé';
@@ -284,9 +290,8 @@
             return (
                 <div className="p-4 animate-fade-in space-y-6">
                     <div>
-                        <h2 className="text-xl font-bold mb-4 text-gray-800">Réglages</h2>
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Notifications</h2>
                         <div className="bg-white p-4 rounded-lg shadow">
-                            <h3 className="font-semibold mb-2">Notifications</h3>
                             <p className="text-sm text-gray-600 mb-4">Statut actuel : <span className="font-semibold">{statusText}</span></p>
                             <button onClick={requestNotificationPermission} disabled={notificationStatus === 'granted'} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}</button>
                         </div>
@@ -294,10 +299,11 @@
                      <div>
                         <h2 className="text-xl font-bold mb-4 text-gray-800">Gérer les catégories</h2>
                         <div className="bg-white p-4 rounded-lg shadow space-y-3">
+                           <h3 className="font-semibold">Catégories existantes</h3>
                            {Object.entries(categories).map(([key, cat]) => (
                                <div key={key} className="flex items-center justify-between p-2 border-b">
                                    <div className="flex items-center gap-3">
-                                       <cat.icon className="w-5 h-5 text-gray-600" />
+                                       {ICONS[cat.icon] ? React.createElement(ICONS[cat.icon]) : <Bell/>}
                                        <span>{cat.label}</span>
                                    </div>
                                    {!cat.isDefault && (
@@ -305,9 +311,24 @@
                                    )}
                                </div>
                            ))}
-                           <div className="flex gap-2 pt-4">
-                               <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nom de la nouvelle catégorie" className="flex-grow mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"/>
-                               <button onClick={addCategory} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">Ajouter</button>
+                           <div className="pt-4">
+                                <h3 className="font-semibold mb-2">Ajouter une catégorie</h3>
+                                <div className="space-y-3">
+                                    <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nom de la nouvelle catégorie" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"/>
+                                    <p className="text-sm text-gray-600">Choisissez une icône :</p>
+                                    <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+                                        {Object.keys(ICONS).map(iconKey => {
+                                            const Icon = ICONS[iconKey];
+                                            const isSelected = newCategoryIcon === iconKey;
+                                            return (
+                                                <button key={iconKey} onClick={() => setNewCategoryIcon(iconKey)} className={`p-2 rounded-lg border-2 ${isSelected ? 'border-blue-500 bg-blue-100' : 'border-transparent hover:bg-gray-100'}`}>
+                                                    <Icon />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <button onClick={addCategory} className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">Ajouter la catégorie</button>
+                                </div>
                            </div>
                         </div>
                     </div>
@@ -322,7 +343,9 @@
             return (
                 <div className="flex items-center justify-between p-3 mb-4 bg-blue-100 text-blue-800 rounded-lg animate-fade-in">
                     <span className="font-medium">Filtre actif : {filterLabel}</span>
-                    <button onClick={onClear} className="p-1 rounded-full hover:bg-blue-200"><XCircle className="w-5 h-5" /></button>
+                    <button onClick={onClear} className="p-1 rounded-full hover:bg-blue-200">
+                        <XCircle className="w-5 h-5" />
+                    </button>
                 </div>
             );
         };
@@ -333,7 +356,8 @@
             showDeleteConfirm, setShowDeleteConfirm, showClearHistoryConfirm, setShowClearHistoryConfirm, 
             addItem, startEdit, saveEdit, markAsDone, deleteItem, clearHistory,
             searchQuery, setSearchQuery, requestNotificationPermission, notificationStatus,
-            filter, setFilter, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory
+            filter, setFilter, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory,
+            newCategoryIcon, setNewCategoryIcon
         }) => {
             const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
 
@@ -370,7 +394,7 @@
                         {currentView === 'upcoming' && <PageView items={getVisibleItems('upcoming')} view="upcoming" searchQuery={searchQuery} filter={filter} showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} categories={categories}/>}
                         {currentView === 'history' && <PageView items={getVisibleItems('history')} view="history" categories={categories}/>}
                         {currentView === 'details' && detailedItem && <DetailsView item={detailedItem} history={history} categories={categories} />}
-                        {currentView === 'settings' && <SettingsView requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus} categories={categories} addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory}/>}
+                        {currentView === 'settings' && <SettingsView requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus} categories={categories} addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory} newCategoryIcon={newCategoryIcon} setNewCategoryIcon={setNewCategoryIcon} />}
                         {currentView === 'filters' && <FilterView filter={filter} setFilter={setFilter} navigateTo={navigateTo} lastMainView={lastMainView} categories={categories}/>}
 
                         {currentView === 'add' && <ItemForm key="add" onSubmit={addItem} itemState={newItem} setItemState={setNewItem} title="Ajouter un nouvel élément" buttonText="Ajouter l'élément" categories={categories}/>}
@@ -405,6 +429,7 @@
             const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
             const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '', isRecurring: true });
             const [newCategoryName, setNewCategoryName] = useState('');
+            const [newCategoryIcon, setNewCategoryIcon] = useState('Wrench');
             const [searchQuery, setSearchQuery] = useState('');
             const [notificationStatus, setNotificationStatus] = useState(Notification.permission);
 
@@ -524,19 +549,22 @@
                 const colorPalette = ['bg-red-100', 'bg-yellow-100', 'bg-teal-100', 'bg-orange-100', 'bg-lime-100'];
                 const randomBg = colorPalette[Math.floor(Math.random() * colorPalette.length)];
 
-                const newCategory = { [newKey]: { icon: Wrench, label: newCategoryName.trim(), bgClass: randomBg, isDefault: false }};
+                const newCategory = { [newKey]: { icon: newCategoryIcon, label: newCategoryName.trim(), bgClass: randomBg, isDefault: false }};
                 setCategories(prev => ({...prev, ...newCategory}));
                 setNewCategoryName('');
             };
 
             const deleteCategory = (keyToDelete) => {
                 if (categories[keyToDelete]?.isDefault) return;
+                
                 const newCategories = {...categories};
                 delete newCategories[keyToDelete];
+                
                 const updatedItems = items.map(item => {
                     if (item.category === keyToDelete) { return { ...item, category: 'autres' }; }
                     return item;
                 });
+
                 setCategories(newCategories);
                 setItems(updatedItems);
             };
@@ -552,6 +580,7 @@
                     requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus}
                     filter={filter} setFilter={setFilter}
                     categories={categories} addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory}
+                    newCategoryIcon={newCategoryIcon} setNewCategoryIcon={setNewCategoryIcon}
                 />
             );
         };
