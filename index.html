@@ -127,7 +127,7 @@
         
         const Footer = ({ currentView, navigateTo }) => (
             <footer className="bg-white border-t border-gray-200 p-2 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
-                <button onClick={() => navigateTo('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500'}`}><HomeIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button>
+                <button onClick={() => navigateTo('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500'}`}><HouseIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button>
                 <button onClick={() => navigateTo('upcoming')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'upcoming' ? 'text-blue-600' : 'text-gray-500'}`}><CalendarClock className="w-6 h-6" /><span className="text-xs mt-1">À prévoir</span></button>
                 <button onClick={() => navigateTo('history')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'history' ? 'text-blue-600' : 'text-gray-500'}`}><HistoryIcon className="w-6 h-6" /><span className="text-xs mt-1">Historique</span></button>
                 <button onClick={() => navigateTo('settings')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'settings' ? 'text-blue-600' : 'text-gray-500'}`}><Settings className="w-6 h-6" /><span className="text-xs mt-1">Réglages</span></button>
