@@ -657,7 +657,7 @@
             const toggleSection = (section) => {
                 setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
             };
-
+            
             const handleCategorySelectChange = (e, setItemState) => {
                 const value = e.target.value;
                 if (value === '--add-new--') {
@@ -678,8 +678,12 @@
                         clearHistory={clearHistory} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                         requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus}
                         filter={filter} setFilter={setFilter}
-                        categories={categories}
+                        categories={categories} 
                         handleCategorySelectChange={handleCategorySelectChange}
+                        openSections={openSections} toggleSection={toggleSection}
+                        addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory}
+                        newCategoryIcon={newCategoryIcon} setNewCategoryIcon={setNewCategoryIcon}
+                        editingCategoryKey={editingCategoryKey} startEditCategory={startEditCategory} cancelEditCategory={cancelEditCategory} saveEditCategory={saveEditCategory} editedCategoryData={editedCategoryData} setEditedCategoryData={setEditedCategoryData}
                     />
                     <CategoryManagerModal 
                         isOpen={isCategoryModalOpen}
