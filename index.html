@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upkeep</title>
+    <title>Assistant d'Entretien</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -15,700 +15,466 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        input, select, textarea { font-size: 16px !important; }
-        body { margin: 0; padding: 0; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .content-transition { transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out; overflow: hidden; }
+        /* Empêcher le zoom sur les inputs en mobile */
+        input, select, textarea {
+            font-size: 16px!important;
+        }
+        
+        /* Style pour une meilleure expérience mobile */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Empêcher la sélection de texte accidentelle */
+       .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
-<body class="bg-gray-50">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useMemo } = React;
 
-        // --- Icônes ---
-        const Bell = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m13.73 21a2 2 0 0 1-3.46 0"/></svg>);
-        const Plus = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-7-7v14"/></svg>);
-        const ArrowLeft = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
-        const Wrench = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>);
-        const CheckCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>);
-        const Clock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>);
-        const AlertTriangle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17.02.01 0"/></svg>);
-        const Edit = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>);
-        const Trash2 = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>);
-        const CalendarClock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M18 14a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M18 16.5V18"/></svg>);
-        const Search = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
-        const Filter = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>);
-        const XCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>);
-        const ChevronDown = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>);
-        const ChevronUp = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>);
-        const CarIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>);
-        const PlugIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg>);
-        const HouseIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>);
-        const CookingPot = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg>);
-        const Bath = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 4 8 6"/><path d="M17 19v2"/><path d="M2 12h20"/><path d="M7 19v2"/><path d="M9 5 7.621 3.621A2.121 2.121 0 0 0 4 5v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg>);
-        const BedDouble = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/><path d="M12 4v6"/><path d="M2 18h20"/></svg>);
-        const Fence = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 3 2 5v15c0 .6.4 1 1 1h2c.6 0 1-.4 1-1V5Z"/><path d="M6 8h4"/><path d="M6 18h4"/><path d="m12 3-2 2v15c0 .6.4 1 1 1h2c.6 0 1-.4 1-1V5Z"/><path d="M14 8h4"/><path d="M14 18h4"/><path d="m20 3-2 2v15c0 .6.4 1 1 1h2c.6 0 1-.4 1-1V5Z"/></svg>);
-        const Toilet = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 12h13a1 1 0 0 1 1 1 5 5 0 0 1-5 5h-.598a.5.5 0 0 0-.424.765l1.544 2.47a.5.5 0 0 1-.424.765H5.402a.5.5 0 0 1-.424-.765L7 18"/><path d="M8 18a5 5 0 0 1-5-5V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8"/></svg>);
-        const Hammer = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/></svg>);
-        const Brush = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 22-1-4"/><path d="M19 13.99a1 1 0 0 0 1-1V12a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v.99a1 1 0 0 0 1 1"/><path d="M5 14h14l1.973 6.767A1 1 0 0 1 20 22H4a1 1 0 0 1-.973-1.233z"/><path d="m8 22 1-4"/></svg>);
-        const Scissors = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>);
-        const Shovel = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 22v-5l5-5 5 5-5 5z"/><path d="M9.5 14.5 16 8"/><path d="m17 2 5 5-.5.5a3.53 3.53 0 0 1-5 0s0 0 0 0a3.53 3.53 0 0 1 0-5L17 2"/></svg>);
-        const Tent = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 21 14 3"/><path d="M20.5 21 10 3"/><path d="M15.5 21 12 15l-3.5 6"/><path d="M2 21h20"/></svg>);
-        const NewHistoryIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>);
-        const NewSettingsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>);
+        // --- Icônes SVG ---
+        const Bell = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m13.73 21a2 2 0 0 1-3.46 0"/></svg>);
+        const Plus = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>);
+        const ArrowLeft = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
+        const Wrench = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>);
+        const Car = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18.4 10c-.4-.8-1.2-1.3-2.1-1.3H7.7c-.9 0-1.7.5-2.1 1.3L3.5 11.1C2.7 11.3 2 12.1 2 13v3c0.6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>);
+        const Home = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>);
+        const History = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>);
+        const CheckCircle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>);
+        const Clock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>);
+        const AlertTriangle = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17.02.01 0"/></svg>);
+        const Edit = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>);
+        const Trash2 = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>);
+        const CalendarClock = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><circle cx="18" cy="18" r="4"/><path d="M18 16v2l1 1"/></svg>);
+        const ChefHat = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c-2.5 0-2.5-2-5-2-2.5 0-2.5 2-5 2v-2c0-2.5 2.5-2.5 5-5 2.5 0 2.5 2.5 5 5Z"/><path d="M12 22c2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2v-2c0-2.5-2.5-2.5-5-5-2.5 0-2.5 2.5-5 5Z"/><path d="M12 15c-2.5 0-2.5-2-5-2-2.5 0-2.5 2-5 2V7c0-2.5 2.5-2.5 5-5 2.5 0 2.5 2.5 5 5Z"/><path d="M12 15c2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2V7c0-2.5-2.5-2.5-5-5-2.5 0-2.5 2.5-5 5Z"/></svg>);
+        const Bed = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16h20V4Z"/><path d="M2 10h20"/><path d="M6 14v-4"/><path d="M18 14v-4"/></svg>);
+        const Bath = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-2.12 0L3 4.88a1.5 1.5 0 0 0 0 2.12L4 8"/><path d="M9 12H3.5a2.5 2.5 0 0 1-2.5-2.5V8"/><path d="M14 14V5a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v3h2"/><path d="M8 15h12v5a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-5Z"/><path d="M21.5 15a2.5 2.5 0 0 0-2.5-2.5H17v2.5"/></svg>);
+        const Sun = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>);
+        const Briefcase = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>);
 
-        const ICONS = { CarIcon, PlugIcon, HouseIcon, Bell, CookingPot, Bath, BedDouble, Fence, Toilet, Hammer, Brush, Scissors, Shovel, Tent, Wrench };
-        
-        const defaultCategories = {
-            voiture: { icon: 'CarIcon', label: 'Voiture', bgClass: 'bg-green-100', isDefault: true },
-            electromenager: { icon: 'PlugIcon', label: 'Électroménager', bgClass: 'bg-blue-100', isDefault: true },
-            maison: { icon: 'HouseIcon', label: 'Maison', bgClass: 'bg-purple-100', isDefault: true },
-            jardin: { icon: 'Fence', label: 'Jardin', bgClass: 'bg-emerald-100', isDefault: true },
-            cuisine: { icon: 'CookingPot', label: 'Cuisine', bgClass: 'bg-pink-100', isDefault: true },
-            sdb: { icon: 'Bath', label: 'Salle de bain', bgClass: 'bg-cyan-100', isDefault: true },
-            chambre: { icon: 'BedDouble', label: 'Chambre', bgClass: 'bg-indigo-100', isDefault: true },
-            autres: { icon: 'Bell', label: 'Autres', bgClass: 'bg-gray-200', isDefault: true },
-        };
-        
-        const getStatus = (nextDateStr) => {
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const nextDate = new Date(nextDateStr); nextDate.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0) return 'overdue';
-            if (diffDays <= 1) return 'urgent';
-            return 'ok';
-        };
-
-        const getStatusColorClasses = (status) => {
-             switch (status) {
-                case 'overdue': return 'text-red-600 bg-red-50 border-red-500';
-                case 'urgent': return 'text-orange-600 bg-orange-50 border-orange-500';
-                default: return 'text-green-600 bg-green-50 border-green-500';
-            }
-        };
-
-        const getStatusText = (status, nextDate) => {
-            const today = new Date(); today.setHours(0,0,0,0);
-            const nextDateObj = new Date(nextDate); nextDateObj.setHours(0,0,0,0);
-            const diffDays = Math.ceil((nextDateObj - today) / (1000 * 60 * 60 * 24));
-            if (status === 'overdue') return `Retard de ${Math.abs(diffDays)} j`;
-            if (diffDays === 0) return "Aujourd'hui";
-            if (diffDays === 1) return "Demain";
-            return `Dans ${diffDays} j`;
-        };
-        
-        const Header = ({ currentView, navigateTo, lastMainView, setShowClearHistoryConfirm }) => {
-            const titles = { today: "À faire aujourd'hui", upcoming: "À prévoir", history: "Historique", add: "Ajouter un élément", edit: "Modifier l'élément", details: "Détails de l'élément", settings: "Réglages", filters: "Filtrer" };
-            return (
-                <header className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
-                    <div className="flex items-center gap-3">
-                        {['add', 'edit', 'details', 'filters'].includes(currentView) && (<button onClick={() => navigateTo(lastMainView)} className="p-1"><ArrowLeft /></button>)}
-                        <Bell />
-                        <h1 className="text-lg font-semibold">{titles[currentView] || "Upkeep"}</h1>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {(currentView === 'today' || currentView === 'upcoming') && (<>
-                            <button onClick={() => navigateTo('filters')} className="p-2 hover:bg-blue-700 rounded-lg"><Filter /></button>
-                            <button onClick={() => navigateTo('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button>
-                        </>)}
-                        {currentView === 'history' && (<button onClick={() => setShowClearHistoryConfirm(true)} className="p-2 hover:bg-blue-700 rounded-lg"><Trash2 /></button>)}
-                    </div>
-                </header>
-            );
-        };
-
-        const SearchBar = ({ query, setQuery }) => (<div className="relative mb-4"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="text-gray-400"/></div><input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un élément..." className="w-full pl-10 pr-4 py-3 border rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500"/></div>);
-        const UrgentBanner = ({ count }) => (<div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"><div className="flex items-center gap-2 text-red-700"><AlertTriangle /><span className="font-medium">{count} élément{count > 1 ? 's' : ''} urgent{count > 1 ? 's' : ''}</span></div></div>);
-        const DeleteConfirmModal = ({ item, onCancel, onDelete }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer "{item?.name}" ?</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onDelete} className="px-4 py-2 bg-red-600 text-white rounded-md">Supprimer</button></div></div></div>);
-        const ClearHistoryConfirmModal = ({ onCancel, onConfirm }) => (<div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"><div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"><h3 className="text-lg font-bold text-gray-900 mb-4">Vider l'historique</h3><p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer tout l'historique ? Cette action est irréversible.</p><div className="flex justify-end space-x-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-md">Annuler</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-md">Vider</button></div></div></div>);
-        
-        const Footer = ({ currentView, navigateTo }) => (
-            <footer className="bg-white border-t border-gray-200 p-2 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
-                <button onClick={() => navigateTo('today')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'today' ? 'text-blue-600' : 'text-gray-500'}`}><HouseIcon className="w-6 h-6" /><span className="text-xs mt-1">Aujourd'hui</span></button>
-                <button onClick={() => navigateTo('upcoming')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'upcoming' ? 'text-blue-600' : 'text-gray-500'}`}><CalendarClock className="w-6 h-6" /><span className="text-xs mt-1">À prévoir</span></button>
-                <button onClick={() => navigateTo('history')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'history' ? 'text-blue-600' : 'text-gray-500'}`}><NewHistoryIcon className="w-6 h-6" /><span className="text-xs mt-1">Historique</span></button>
-                <button onClick={() => navigateTo('settings')} className={`flex flex-col items-center p-2 rounded-lg w-1/4 ${currentView === 'settings' ? 'text-blue-600' : 'text-gray-500'}`}><NewSettingsIcon className="w-6 h-6" /><span className="text-xs mt-1">Réglages</span></button>
-            </footer>
-        );
-        
-        const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails, categories }) => {
-            const category = categories[item.category] || categories.autres;
-            const IconComponent = ICONS[category.icon] || Bell;
-            const status = getStatus(item.nextMaintenance);
-            const [textColor, bgColor, borderColor] = getStatusColorClasses(status).split(" ");
-            
-            return (
-                <div className={`bg-white rounded-lg shadow-md border-l-4 ${borderColor} ${justCompleted === item.id ? 'ring-2 ring-green-500' : ''}`}>
-                    <div onClick={() => showDetails(item)} className="p-4 cursor-pointer">
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className={`p-2 rounded-lg ${category.bgClass}`}><IconComponent/></div>
-                                <div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div>
-                            </div>
-                            <div className="flex gap-1 ml-2">
-                                <button onClick={(e) => { e.stopPropagation(); startEdit(item); }} className="p-2 text-gray-400 hover:text-blue-500 rounded-lg"><Edit /></button>
-                                <button onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(item.id); }} className="p-2 text-gray-400 hover:text-red-500 rounded-lg"><Trash2 /></button>
-                            </div>
-                        </div>
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium mb-3 border ${borderColor.replace('border-','border-')} ${bgColor} ${textColor}`}>
-                            <Clock className="w-4 h-4"/>
-                            {item.isRecurring ? getStatusText(status, item.nextMaintenance) : `Pour le ${new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}`}
-                        </div>
-                        <div className="space-y-1 text-sm text-gray-600">
-                           {item.isRecurring && <p><span className="font-medium">Dernier:</span> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>}
-                           {item.isRecurring ? 
-                                <p><span className="font-medium">Prochain:</span> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
-                               : <p><span className="font-medium">Échéance:</span> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
-                           }
-                        </div>
-                    </div>
-                    <div className="border-t p-2">
-                         <button onClick={() => markAsDone(item.id)} className={`w-full px-4 py-3 rounded-lg flex items-center justify-center gap-2 font-medium transition-colors ${justCompleted === item.id ? 'bg-green-700 text-white' : 'bg-green-600 text-white hover:bg-green-700'}`} disabled={justCompleted === item.id}>
-                            <CheckCircle />{justCompleted === item.id ? 'Terminé !' : 'Marquer comme fait'}
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-        
-        const HistoryCard = ({ item, categories }) => {
-            const category = categories[item.category] || categories.autres;
-            const IconComponent = ICONS[category.icon] || Bell;
-            const completedDate = new Date(item.completedAt);
-            return (<div className="bg-white rounded-lg shadow-md border-l-4 border-green-500 animate-fade-in"><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${category.bgClass}`}><IconComponent /></div><div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div></div><p className="text-sm text-gray-600 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
-        };
-
-        const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText, categories, handleCategorySelectChange }) => {
-            const handleRecurringChange = (e) => {
-                const isRecurring = e.target.checked;
-                setItemState({ ...itemState, isRecurring, intervalDays: isRecurring ? itemState.intervalDays : '' });
-            };
-
-            return (
-                <div className="p-4 animate-fade-in">
-                    <h2 className="text-xl font-bold mb-4 text-gray-800">{title}</h2>
-                    <div className="space-y-4">
-                        <input name="name" type="text" value={itemState.name} onChange={(e) => setItemState({...itemState, name: e.target.value})} placeholder="Nom de l'élément" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
-                        <select name="category" value={itemState.category} onChange={(e) => handleCategorySelectChange(e, setItemState)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
-                            {Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}
-                            <option value="--add-new--" className="font-bold text-blue-600">-- Gérer les catégories --</option>
-                        </select>
-                        
-                        <div className="flex items-center space-x-2">
-                            <input id="isRecurring" type="checkbox" checked={itemState.isRecurring} onChange={handleRecurringChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded"/>
-                            <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">Tâche récurrente</label>
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium text-gray-700">{itemState.isRecurring ? "Dernier entretien" : "Date d'échéance"}</label>
-                            <input name="lastMaintenance" type="date" value={itemState.lastMaintenance} onChange={(e) => setItemState({...itemState, lastMaintenance: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
-                        </div>
-
-                        {itemState.isRecurring && (
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Fréquence (jours)</label>
-                                <input name="intervalDays" type="number" value={itemState.intervalDays} onChange={(e) => setItemState({...itemState, intervalDays: e.target.value})} placeholder="Ex: 365" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
-                            </div>
-                        )}
-                        
-                        <textarea name="notes" value={itemState.notes} onChange={(e) => setItemState({...itemState, notes: e.target.value})} placeholder="Notes (optionnel)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24"></textarea>
-                        <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">
-                            {buttonText}
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        const DetailsView = ({ item, history, categories }) => {
-            const itemHistory = history.filter(h => h.originalId === item.id).sort((a,b) => new Date(b.completedAt) - new Date(a.completedAt));
-            const category = categories[item.category] || categories.autres;
-            const IconComponent = ICONS[category.icon] || Bell;
-            return (
-                <div className="bg-white text-gray-800 rounded-lg shadow-lg p-6 animate-fade-in">
-                    <div className="flex items-center gap-4 mb-4 pb-4 border-b">
-                        <div className={`p-3 rounded-lg ${category.bgClass}`}><IconComponent /></div>
-                        <div><h2 className="text-2xl font-bold ">{item.name}</h2><p className="text-gray-500">{category.label}</p></div>
-                    </div>
-                    <div className="space-y-2 text-sm mb-6">
-                        {item.isRecurring ? (
-                            <>
-                                <p><strong>Prochain entretien :</strong> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
-                                <p><strong>Dernier entretien :</strong> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>
-                                <p><strong>Fréquence :</strong> Tous les {item.intervalDays} jours</p>
-                            </>
-                        ) : (
-                            <p><strong>Échéance :</strong> {new Date(item.nextMaintenance).toLocaleDateString('fr-FR')}</p>
-                        )}
-                        {item.notes && <p className="mt-2 pt-2 border-t"><strong>Notes :</strong> {item.notes}</p>}
-                    </div>
-                    <h3 className="text-xl font-semibold mt-6 mb-3">Historique de cet élément</h3>
-                    {itemHistory.length > 0 ? (<ul className="space-y-2">{itemHistory.map(h => (<li key={h.id} className="flex justify-between p-3 bg-gray-50 rounded-lg"><span>Fait le :</span><span className="font-medium">{new Date(h.completedAt).toLocaleString('fr-FR', {dateStyle: 'long', timeStyle: 'short'})}</span></li>))}</ul>) 
-                    : <p className="text-gray-500 italic">Aucun historique pour cet élément.</p>}
-                </div>
-            );
-        };
-        
-        const FilterView = ({ filter, setFilter, navigateTo, lastMainView, categories }) => (
-            <div className="p-4 animate-fade-in">
-                <div className="space-y-3">
-                    <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="all" checked={filter === 'all'} onChange={() => {setFilter('all'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-blue-600"/><span>Toutes les tâches</span></label>
-                    <label className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer"><input type="radio" name="filter" value="urgent" checked={filter === 'urgent'} onChange={() => {setFilter('urgent'); navigateTo(lastMainView);}} className="form-radio h-5 w-5 text-red-600"/><AlertTriangle className="h-5 w-5 text-red-500" /><span>Urgences</span></label>
-                    {Object.entries(categories).map(([key, cat]) => {
-                        const CategoryIcon = ICONS[cat.icon] || Bell;
-                        return (<label key={key} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border cursor-pointer">
-                            <input type="radio" name="filter" value={key} checked={filter === key} onChange={() => {setFilter(key); navigateTo(lastMainView);}} className="form-radio h-5 w-5"/>
-                            <CategoryIcon className="h-5 w-5 text-gray-600" />
-                            <span>{cat.label}</span>
-                        </label>)
-                    })}
-                </div>
-            </div>
-        );
-        
-        const PageView = ({ items, view, searchQuery, filter, categories, ...props }) => {
-            const emptyStates = {
-                today: { icon: CheckCircle, text: "Rien à faire aujourd'hui !", subtext: "Profitez de votre journée." },
-                upcoming: { icon: Clock, text: "Aucune tâche à prévoir.", subtext: "Ajoutez de nouveaux éléments." },
-                history: { icon: NewHistoryIcon, text: "Aucune tâche complétée aujourd'hui.", subtext: "Marquez une tâche comme faite." }
-            };
-
-            if (items.length === 0) {
-                if (searchQuery) {
-                    return (<div className="text-center py-12"><Search className="h-16 w-16 text-gray-400 mx-auto mb-4" /><p className="text-gray-500 text-lg mb-2">Aucun résultat</p><p className="text-gray-400">Essayez avec d'autres mots-clés.</p></div>);
-                }
-                if (filter && filter !== 'all' && filter !== 'urgent') {
-                    const categoryName = categories[filter]?.label || '';
-                    const EmptyIcon = ICONS[categories[filter]?.icon] || Clock;
-                    return (<div className="text-center py-12"><EmptyIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" /><p className="text-gray-500 text-lg mb-2">Aucune tâche dans "{categoryName}"</p><p className="text-gray-400">Ajoutez-en une ou changez de filtre.</p></div>);
-                }
-                const { icon: EmptyIcon, text, subtext } = emptyStates[view];
-                return (<div className="text-center py-12"><EmptyIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" /><p className="text-gray-500 text-lg mb-2">{text}</p><p className="text-gray-400">{subtext}</p></div>);
-            }
-
-            return (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} categories={categories}/> : <ItemCard key={item.id} item={item} {...props} categories={categories} />)}</div>);
-        };
-        
-        const SettingsView = ({ requestNotificationPermission, notificationStatus, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory, newCategoryIcon, setNewCategoryIcon, editingCategoryKey, startEditCategory, cancelEditCategory, saveEditCategory, editedCategoryData, setEditedCategoryData, openSections, toggleSection }) => {
-            const getFriendlyStatus = (status) => {
-                if (status === 'granted') return 'Activé';
-                if (status === 'denied') return 'Refusé';
-                return 'Désactivé';
-            };
-            const statusText = getFriendlyStatus(notificationStatus);
-            return (
-                <div className="p-4 animate-fade-in space-y-4">
-                    <div className="bg-white rounded-lg shadow">
-                        <button onClick={() => toggleSection('notifications')} className="w-full flex justify-between items-center p-4 font-bold text-lg text-gray-800">
-                            <span>Notifications</span>
-                            {openSections.notifications ? <ChevronUp /> : <ChevronDown />}
-                        </button>
-                        <div className={`overflow-hidden content-transition ${openSections.notifications ? 'max-h-96' : 'max-h-0'}`}>
-                            <div className="p-4 border-t">
-                                <p className="text-sm text-gray-600 mb-4">Statut actuel : <span className="font-semibold">{statusText}</span></p>
-                                <button onClick={requestNotificationPermission} disabled={notificationStatus === 'granted'} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}</button>
-                            </div>
-                        </div>
-                    </div>
-                     <div className="bg-white rounded-lg shadow">
-                         <button onClick={() => toggleSection('categories')} className="w-full flex justify-between items-center p-4 font-bold text-lg text-gray-800">
-                            <span>Gérer les catégories</span>
-                            {openSections.categories ? <ChevronUp /> : <ChevronDown />}
-                        </button>
-                        <div className={`overflow-hidden content-transition ${openSections.categories ? 'max-h-screen' : 'max-h-0'}`}>
-                             <div className="p-4 border-t space-y-3">
-                               <h3 className="font-semibold">Catégories existantes</h3>
-                               <div className="max-h-60 overflow-y-auto pr-2">
-                                   {Object.entries(categories).map(([key, cat]) => {
-                                       const Icon = ICONS[cat.icon] || Bell;
-                                       const isEditing = editingCategoryKey === key;
-                                       return (
-                                           <div key={key} className="p-2 border-b">
-                                           {isEditing ? (
-                                               <div className="space-y-2">
-                                                   <input type="text" value={editedCategoryData.label} onChange={(e) => setEditedCategoryData({...editedCategoryData, label: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                                                   <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
-                                                       {Object.keys(ICONS).map(iconKey => {
-                                                           const IconComponent = ICONS[iconKey];
-                                                           const isSelected = editedCategoryData.icon === iconKey;
-                                                           return (<button key={iconKey} onClick={() => setEditedCategoryData({...editedCategoryData, icon: iconKey})} className={`p-2 rounded-lg border-2 ${isSelected ? 'border-blue-500 bg-blue-100' : 'border-transparent hover:bg-gray-100'}`}><IconComponent /></button>);
-                                                       })}
-                                                   </div>
-                                                   <div className="flex justify-end gap-2">
-                                                       <button onClick={cancelEditCategory} className="px-3 py-1 bg-gray-200 rounded">Annuler</button>
-                                                       <button onClick={() => saveEditCategory(key)} className="px-3 py-1 bg-blue-600 text-white rounded">Enregistrer</button>
-                                                   </div>
-                                               </div>
-                                           ) : (
-                                               <div className="flex items-center justify-between">
-                                                   <div className="flex items-center gap-3">
-                                                       <Icon className="w-5 h-5 text-gray-600" />
-                                                       <span>{cat.label}</span>
-                                                   </div>
-                                                   {!cat.isDefault && (
-                                                       <div className="flex gap-2">
-                                                           <button onClick={() => startEditCategory(key, cat)} className="p-1 text-gray-400 hover:text-blue-500"><Edit className="w-5 h-5" /></button>
-                                                           <button onClick={() => deleteCategory(key)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
-                                                       </div>
-                                                   )}
-                                               </div>
-                                           )}
-                                           </div>
-                                      )
-                                   })}
-                               </div>
-                               <div className="pt-4">
-                                    <h3 className="font-semibold mb-2">Ajouter une catégorie</h3>
-                                    <div className="space-y-3">
-                                        <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nom de la nouvelle catégorie" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"/>
-                                        <p className="text-sm text-gray-600">Choisissez une icône :</p>
-                                        <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
-                                            {Object.keys(ICONS).map(iconKey => {
-                                                const Icon = ICONS[iconKey];
-                                                const isSelected = newCategoryIcon === iconKey;
-                                                return (
-                                                    <button key={iconKey} onClick={() => setNewCategoryIcon(iconKey)} className={`p-2 rounded-lg border-2 ${isSelected ? 'border-blue-500 bg-blue-100' : 'border-transparent hover:bg-gray-100'}`}>
-                                                        <Icon />
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                        <button onClick={addCategory} className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">Ajouter la catégorie</button>
-                                    </div>
-                               </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-        
-        const ActiveFilterBanner = ({ filter, onClear, categories }) => {
-            const filterLabel = filter === 'urgent' ? 'Urgences' : categories[filter]?.label;
-            if (!filterLabel) return null;
-
-            return (
-                <div className="flex items-center justify-between p-3 mb-4 bg-blue-100 text-blue-800 rounded-lg animate-fade-in">
-                    <span className="font-medium">Filtre actif : {filterLabel}</span>
-                    <button onClick={onClear} className="p-1 rounded-full hover:bg-blue-200">
-                        <XCircle className="w-5 h-5" />
-                    </button>
-                </div>
-            );
-        };
-
-        const CategoryManagerModal = ({ isOpen, onClose, ...props }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl p-4 max-w-sm w-full">
-                        <div className="max-h-[60vh] overflow-y-auto">
-                           <SettingsView {...props} openSections={{notifications: false, categories: true}} toggleSection={() => {}}/>
-                        </div>
-                        <button onClick={onClose} className="mt-4 w-full bg-gray-200 p-2 rounded-lg">Fermer</button>
-                    </div>
-                </div>
-            );
-        };
-
-        const AppUI = ({
-            items, history, currentView, navigateTo, lastMainView, detailedItem, showDetails,
-            newItem, setNewItem, editingItem, setEditingItem, justCompleted,
-            showDeleteConfirm, setShowDeleteConfirm, showClearHistoryConfirm, setShowClearHistoryConfirm, 
-            addItem, startEdit, saveEdit, markAsDone, deleteItem, clearHistory,
-            searchQuery, setSearchQuery, requestNotificationPermission, notificationStatus,
-            filter, setFilter, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory,
-            newCategoryIcon, setNewCategoryIcon, editingCategoryKey, startEditCategory, cancelEditCategory, saveEditCategory, editedCategoryData, setEditedCategoryData,
-            openSections, toggleSection, handleCategorySelectChange
-        }) => {
-            const getVisibleItems = (view) => {
-                let list = items;
-                if (searchQuery && (view === 'today' || view === 'upcoming')) {
-                    list = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
-                }
-
-                if (view === 'history') { return history.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); }
-                
-                return list.filter(item => {
-                    const nextDate = new Date(item.nextMaintenance); nextDate.setHours(0, 0, 0, 0);
-                    const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
-                    if (view === 'today' && nextDate > todayDate) return false;
-                    if (view === 'upcoming' && nextDate <= todayDate) return false;
-                    
-                    if (filter === 'all') return true;
-                    if (filter === 'urgent') return getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent';
-                    return item.category === filter;
-                }).sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance));
-            };
-
-            const urgentCount = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent').length;
-
-            return (
-                <div className="max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col">
-                    <Header currentView={currentView} navigateTo={navigateTo} lastMainView={lastMainView} setShowClearHistoryConfirm={setShowClearHistoryConfirm} />
-                    <main className="flex-grow overflow-y-auto p-4 pb-20">
-                        {urgentCount > 0 && (currentView === 'today' || currentView === 'upcoming') && <UrgentBanner count={urgentCount} />}
-                        {(currentView === 'today' || currentView === 'upcoming') && <SearchBar query={searchQuery} setQuery={setSearchQuery} />}
-                        {(currentView === 'today' || currentView === 'upcoming') && filter !== 'all' && <ActiveFilterBanner filter={filter} onClear={() => setFilter('all')} categories={categories}/>}
-                        
-                        {currentView === 'today' && <PageView items={getVisibleItems('today')} view="today" searchQuery={searchQuery} filter={filter} showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} categories={categories}/>}
-                        {currentView === 'upcoming' && <PageView items={getVisibleItems('upcoming')} view="upcoming" searchQuery={searchQuery} filter={filter} showDetails={showDetails} startEdit={startEdit} setShowDeleteConfirm={setShowDeleteConfirm} justCompleted={justCompleted} markAsDone={markAsDone} categories={categories}/>}
-                        {currentView === 'history' && <PageView items={getVisibleItems('history')} view="history" categories={categories}/>}
-                        {currentView === 'details' && detailedItem && <DetailsView item={detailedItem} history={history} categories={categories} />}
-                        {currentView === 'settings' && <SettingsView requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus} categories={categories} addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory} newCategoryIcon={newCategoryIcon} setNewCategoryIcon={setNewCategoryIcon} editingCategoryKey={editingCategoryKey} startEditCategory={startEditCategory} cancelEditCategory={cancelEditCategory} saveEditCategory={saveEditCategory} editedCategoryData={editedCategoryData} setEditedCategoryData={setEditedCategoryData} openSections={openSections} toggleSection={toggleSection} />}
-                        {currentView === 'filters' && <FilterView filter={filter} setFilter={setFilter} navigateTo={navigateTo} lastMainView={lastMainView} categories={categories}/>}
-
-                        {currentView === 'add' && <ItemForm key="add" onSubmit={addItem} itemState={newItem} setItemState={setNewItem} title="Ajouter un nouvel élément" buttonText="Ajouter l'élément" categories={categories} handleCategorySelectChange={handleCategorySelectChange}/>}
-                        {currentView === 'edit' && editingItem && <ItemForm key="edit" onSubmit={saveEdit} itemState={editingItem} setItemState={setEditingItem} title="Modifier l'élément" buttonText="Enregistrer" categories={categories} handleCategorySelectChange={handleCategorySelectChange}/>}
-                    </main>
-                    {showDeleteConfirm && <DeleteConfirmModal item={items.find(i => i.id === showDeleteConfirm)} onCancel={() => setShowDeleteConfirm(null)} onDelete={() => deleteItem(showDeleteConfirm)} />}
-                    {showClearHistoryConfirm && <ClearHistoryConfirmModal onCancel={() => setShowClearHistoryConfirm(false)} onConfirm={clearHistory} />}
-                    <Footer currentView={currentView} navigateTo={navigateTo} />
-                </div>
-            );
-        };
-        
         const MobileMaintenanceApp = () => {
-            const getTodayDateString = () => new Date().toISOString().split('T')[0];
-        
             const [items, setItems] = useState(() => {
-                const savedItems = JSON.parse(localStorage.getItem('maintenanceItems_v3')) || [];
-                return savedItems.map(item => ({ ...item, isRecurring: item.isRecurring === undefined ? true : item.isRecurring }));
+                const saved = localStorage.getItem('maintenanceItems');
+                return saved? JSON.parse(saved) :;
             });
-            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
-            const [categories, setCategories] = useState(() => {
-                const saved = localStorage.getItem('maintenanceCategories_v1');
-                return saved ? JSON.parse(saved) : defaultCategories;
-            });
-            const [currentView, setCurrentView] = useState('today');
-            const lastMainView = useRef('today');
-            const [detailedItem, setDetailedItem] = useState(null);
+
+            const [currentView, setCurrentView] = useState('list'); // 'list', 'add', 'edit', 'history'
+            const = useState('today'); // 'today', 'upcoming', 'completed_today'
             const [editingItem, setEditingItem] = useState(null);
-            const [filter, setFilter] = useState('all');
             const [justCompleted, setJustCompleted] = useState(null);
-            const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-            const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
-            const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '', isRecurring: true });
-            const [newCategoryName, setNewCategoryName] = useState('');
-            const [newCategoryIcon, setNewCategoryIcon] = useState('Wrench');
-            const [searchQuery, setSearchQuery] = useState('');
-            const [notificationStatus, setNotificationStatus] = useState(Notification.permission);
-            const [editingCategoryKey, setEditingCategoryKey] = useState(null);
-            const [editedCategoryData, setEditedCategoryData] = useState({ label: '', icon: '' });
-            const [openSections, setOpenSections] = useState({ notifications: false, categories: false });
-            const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+            const = useState(null);
 
-            useEffect(() => { localStorage.setItem('maintenanceItems_v3', JSON.stringify(items)); }, [items]);
-            useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
-            useEffect(() => { localStorage.setItem('maintenanceCategories_v1', JSON.stringify(categories)); }, [categories]);
-            
             useEffect(() => {
-                const handleVisibilityChange = () => {
-                    if (document.visibilityState === 'hidden' && notificationStatus === 'granted') {
-                        const lastNotificationDate = localStorage.getItem('lastNotificationDate');
-                        const today = getTodayDateString();
-                        if (lastNotificationDate === today) return;
+                localStorage.setItem('maintenanceItems', JSON.stringify(items));
+            }, [items]);
 
-                        const urgentItems = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent');
-                        if (urgentItems.length > 0) {
-                            let title = "Rappel d'entretien";
-                            let body = `Vous avez ${urgentItems.length} tâches urgentes ou en retard.`;
-                            if (urgentItems.length === 1) { body = `${urgentItems[0].name} est à faire bientôt !`; }
-                            navigator.serviceWorker.ready.then(registration => {
-                                registration.showNotification(title, { body, vibrate: [200] });
-                                localStorage.setItem('lastNotificationDate', today);
-                            });
-                        }
-                    }
-                };
-                document.addEventListener('visibilitychange', handleVisibilityChange);
-                return () => { document.removeEventListener('visibilitychange', handleVisibilityChange); };
-            }, [items, notificationStatus]);
-            
-            const navigateTo = (view) => {
-                if (['today', 'upcoming', 'history', 'settings'].includes(view)) {
-                    lastMainView.current = view;
-                }
-                setCurrentView(view);
+            const categories = {
+                cuisine: { icon: ChefHat, label: 'Cuisine', bgClass: 'bg-orange-100', textClass: 'text-orange-600' },
+                sdb: { icon: Bath, label: 'Salle de bain', bgClass: 'bg-cyan-100', textClass: 'text-cyan-600' },
+                chambre: { icon: Bed, label: 'Chambre', bgClass: 'bg-violet-100', textClass: 'text-violet-600' },
+                maison: { icon: Home, label: 'Maison', bgClass: 'bg-purple-100', textClass: 'text-purple-600' },
+                electromenager: { icon: Wrench, label: 'Électroménager', bgClass: 'bg-blue-100', textClass: 'text-blue-600' },
+                voiture: { icon: Car, label: 'Voiture', bgClass: 'bg-green-100', textClass: 'text-green-600' },
+                exterieur: { icon: Sun, label: 'Extérieur', bgClass: 'bg-yellow-100', textClass: 'text-yellow-600' },
+                bureau: { icon: Briefcase, label: 'Bureau', bgClass: 'bg-indigo-100', textClass: 'text-indigo-600' },
+                autres: { icon: Bell, label: 'Autres', bgClass: 'bg-gray-100', textClass: 'text-gray-600' },
             };
 
-            const requestNotificationPermission = async () => {
-                if (!('Notification' in window) || !navigator.serviceWorker) { alert("Ce navigateur ne supporte pas les notifications."); return; }
-                const permission = await Notification.requestPermission();
-                setNotificationStatus(permission);
-                if (permission === 'granted') {
-                    navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification('Upkeep', { body: 'Les notifications sont activées !', icon: './icon-192.png', badge: './icon-96.png', vibrate: [200, 100, 200] });
-                    });
-                }
-            };
-            
-            const getNextMaintenanceDate = (lastDate, intervalDays) => { const last = new Date(lastDate); const next = new Date(last); next.setDate(last.getDate() + parseInt(intervalDays, 10)); return next; };
-            
-            const markAsDone = (id) => {
-                const itemToComplete = items.find(item => item.id === id);
-                if (!itemToComplete) return;
+            const [newItem, setNewItem] = useState({
+                name: '',
+                category: 'cuisine',
+                lastMaintenance: '',
+                intervalDays: '',
+                notes: ''
+            });
 
-                setHistory(currentHistory => {
-                    const todayString = new Date().toISOString().split('T')[0];
-                    const existingHistoryIndex = currentHistory.findIndex(histItem => histItem.originalId === itemToComplete.id && histItem.completedAt.startsWith(todayString));
-                    if (existingHistoryIndex !== -1) {
-                        const updatedHistory = [...currentHistory];
-                        updatedHistory[existingHistoryIndex].completedAt = new Date().toISOString();
-                        return updatedHistory;
-                    } else {
-                        const newHistoryEntry = { ...itemToComplete, id: Date.now(), originalId: itemToComplete.id, completedAt: new Date().toISOString() };
-                        return [newHistoryEntry, ...currentHistory];
-                    }
-                });
-
-                if (itemToComplete.isRecurring) {
-                    setItems(currentItems => currentItems.map(item => {
-                        if (item.id === id) {
-                            const now = new Date();
-                            return { ...item, lastMaintenance: now.toISOString().split('T')[0], nextMaintenance: getNextMaintenanceDate(now, item.intervalDays).toISOString() };
-                        }
-                        return item;
-                    }));
-                } else {
-                    setItems(currentItems => currentItems.filter(item => item.id !== id));
-                }
-                setJustCompleted(id);
-                setTimeout(() => setJustCompleted(null), 2000);
+            const getNextMaintenanceDate = (lastDate, intervalDays) => {
+                if (!lastDate ||!intervalDays) return null;
+                const last = new Date(lastDate);
+                const next = new Date(last);
+                next.setDate(last.getDate() + parseInt(intervalDays));
+                return next;
             };
-            
+
+            const getStatus = (nextDate) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const next = new Date(nextDate);
+                next.setHours(0, 0, 0, 0);
+                
+                const diffDays = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays < 0) return 'overdue';
+                if (diffDays === 0) return 'today';
+                if (diffDays <= 7) return 'urgent';
+                if (diffDays <= 30) return 'soon';
+                return 'ok';
+            };
+
             const addItem = () => {
-                if (!newItem.name || !newItem.lastMaintenance || (newItem.isRecurring && !newItem.intervalDays)) { alert("Veuillez remplir tous les champs requis."); return; }
-                const nextMaintenance = newItem.isRecurring ? getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays).toISOString() : new Date(newItem.lastMaintenance).toISOString();
-                const itemToAdd = { id: Date.now(), ...newItem, nextMaintenance, intervalDays: newItem.isRecurring ? parseInt(newItem.intervalDays, 10) : null };
-                setItems(currentItems => [...currentItems, itemToAdd]);
-                setNewItem({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '', isRecurring: true });
-                navigateTo('today');
+                if (!newItem.name ||!newItem.lastMaintenance ||!newItem.intervalDays) return;
+                const nextMaintenanceDate = getNextMaintenanceDate(newItem.lastMaintenance, newItem.intervalDays);
+                const item = {
+                    id: Date.now(),
+                   ...newItem,
+                    intervalDays: parseInt(newItem.intervalDays),
+                    nextMaintenance: nextMaintenanceDate? nextMaintenanceDate.toISOString() : null,
+                    history:
+                };
+                setItems([...items, item]);
+                setNewItem({ name: '', category: 'cuisine', lastMaintenance: '', intervalDays: '', notes: '' });
+                setCurrentView('list');
             };
 
             const startEdit = (item) => {
-                const dateForForm = item.isRecurring ? item.lastMaintenance : item.nextMaintenance;
-                setEditingItem({ ...item, lastMaintenance: new Date(dateForForm).toISOString().split('T')[0] });
-                navigateTo('edit');
+                setEditingItem({
+                   ...item,
+                    lastMaintenance: new Date(item.lastMaintenance).toISOString().split('T'),
+                });
+                setCurrentView('edit');
             };
 
             const saveEdit = () => {
-                if (!editingItem) return;
-                if (!editingItem.name || !editingItem.lastMaintenance || (editingItem.isRecurring && !editingItem.intervalDays)) { alert("Veuillez remplir tous les champs requis."); return; }
-                const nextMaintenance = editingItem.isRecurring ? getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays).toISOString() : new Date(editingItem.lastMaintenance).toISOString();
-                const updatedItem = { ...editingItem, nextMaintenance, intervalDays: editingItem.isRecurring ? parseInt(editingItem.intervalDays, 10) : null };
-                setItems(currentItems => currentItems.map(i => i.id === editingItem.id ? updatedItem : i));
+                if (!editingItem.name ||!editingItem.lastMaintenance ||!editingItem.intervalDays) return;
+                const nextMaintenanceDate = getNextMaintenanceDate(editingItem.lastMaintenance, editingItem.intervalDays);
+                const updatedItem = {
+                   ...editingItem,
+                    intervalDays: parseInt(editingItem.intervalDays),
+                    nextMaintenance: nextMaintenanceDate? nextMaintenanceDate.toISOString() : null,
+                };
+                setItems(items.map(item => item.id === editingItem.id? updatedItem : item));
                 setEditingItem(null);
-                navigateTo('today');
+                setCurrentView('list');
             };
 
-            const deleteItem = (id) => { setItems(items.filter(item => item.id !== id)); setHistory(history.filter(item => item.originalId !== id)); setShowDeleteConfirm(null);};
-            const clearHistory = () => { setHistory([]); setShowClearHistoryConfirm(false); };
-            const showDetails = (item) => { setDetailedItem(item); navigateTo('details'); };
-
-            const addCategory = () => {
-                if (!newCategoryName.trim()) { alert("Le nom de la catégorie ne peut pas être vide."); return; }
-                const newKey = newCategoryName.trim().toLowerCase().replace(/\s+/g, '_');
-                if (categories[newKey]) { alert("Cette catégorie existe déjà."); return; }
-                
-                const colorPalette = ['bg-red-100', 'bg-yellow-100', 'bg-teal-100', 'bg-orange-100', 'bg-lime-100'];
-                const randomBg = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-
-                const newCategory = { [newKey]: { icon: newCategoryIcon, label: newCategoryName.trim(), bgClass: randomBg, isDefault: false }};
-                setCategories(prev => ({...prev, ...newCategory}));
-                setNewCategoryName('');
-            };
-
-            const deleteCategory = (keyToDelete) => {
-                if (categories[keyToDelete]?.isDefault) return;
-                const newCategories = {...categories};
-                delete newCategories[keyToDelete];
-                const updatedItems = items.map(item => {
-                    if (item.category === keyToDelete) { return { ...item, category: 'autres' }; }
+            const markAsDone = (id) => {
+                setItems(items.map(item => {
+                    if (item.id === id) {
+                        const now = new Date();
+                        const completionRecord = {
+                            date: now.toISOString(),
+                            notes: '' // Could add a field for completion notes later
+                        };
+                        const updatedHistory = item.history? :;
+                        
+                        const updatedItem = {
+                           ...item,
+                            lastMaintenance: now.toISOString(),
+                            nextMaintenance: getNextMaintenanceDate(now, item.intervalDays).toISOString(),
+                            history: updatedHistory
+                        };
+                        
+                        setJustCompleted(id);
+                        setTimeout(() => setJustCompleted(null), 2000);
+                        
+                        return updatedItem;
+                    }
                     return item;
-                });
-                setCategories(newCategories);
-                setItems(updatedItems);
+                }));
             };
 
-            const startEditCategory = (key, categoryData) => {
-                setEditingCategoryKey(key);
-                setEditedCategoryData({ label: categoryData.label, icon: categoryData.icon });
+            const deleteItem = (id) => {
+                setItems(items.filter(item => item.id!== id));
+                setShowDeleteConfirm(null);
             };
 
-            const cancelEditCategory = () => {
-                setEditingCategoryKey(null);
-            };
-
-            const saveEditCategory = (key) => {
-                if (!editedCategoryData.label.trim()) {
-                    alert("Le nom de la catégorie ne peut pas être vide.");
-                    return;
+            const getStatusColor = (status) => {
+                switch (status) {
+                    case 'overdue': return 'border-red-500';
+                    case 'today': return 'border-red-500';
+                    case 'urgent': return 'border-orange-500';
+                    case 'soon': return 'border-yellow-500';
+                    default: return 'border-green-500';
                 }
-                const newCategories = {...categories};
-                newCategories[key] = { ...newCategories[key], label: editedCategoryData.label.trim(), icon: editedCategoryData.icon };
-                setCategories(newCategories);
-                setEditingCategoryKey(null);
             };
 
-            const toggleSection = (section) => {
-                setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+            const getStatusText = (status, nextDate) => {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const next = new Date(nextDate);
+                next.setHours(0,0,0,0);
+
+                const diffDays = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+                
+                switch (status) {
+                    case 'overdue': return `Retard de ${Math.abs(diffDays)}j`;
+                    case 'today': return `Aujourd'hui`;
+                    case 'urgent': return `Dans ${diffDays}j`;
+                    case 'soon': return `Dans ${diffDays}j`;
+                    default: return `Dans ${diffDays}j`;
+                }
             };
             
-            const handleCategorySelectChange = (e, setItemState) => {
-                const value = e.target.value;
-                if (value === '--add-new--') {
-                    setIsCategoryModalOpen(true);
-                } else {
-                    setItemState(prev => ({...prev, category: value}));
+            const todayString = new Date().toISOString().split('T');
+
+            const isCompletedToday = (item) => {
+                if (!item.history |
+
+| item.history.length === 0) return false;
+                const lastCompletionDate = new Date(item.history[item.history.length - 1].date).toISOString().split('T');
+                return lastCompletionDate === todayString;
+            };
+
+            const itemsToday = useMemo(() => items.filter(item => {
+                const status = getStatus(item.nextMaintenance);
+                return (status === 'today' |
+
+| status === 'overdue') &&!isCompletedToday(item);
+            }).sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance)), [items]);
+            
+            const itemsUpcoming = useMemo(() => items.filter(item => {
+                const status = getStatus(item.nextMaintenance);
+                return (status === 'urgent' |
+
+| status === 'soon' |
+| status === 'ok') &&!isCompletedToday(item);
+            }).sort((a, b) => new Date(a.nextMaintenance) - new Date(b.nextMaintenance)), [items]);
+
+            const itemsCompletedToday = useMemo(() => items.filter(isCompletedToday)
+             .sort((a, b) => new Date(b.history[b.history.length-1].date) - new Date(a.history[a.history.length-1].date)), [items]);
+
+            const allCompletedItems = useMemo(() => {
+                const allHistory =;
+                items.forEach(item => {
+                    if (item.history && item.history.length > 0) {
+                        item.history.forEach(h => {
+                            allHistory.push({...item, completionDate: h.date });
+                        });
+                    }
+                });
+                return allHistory.sort((a, b) => new Date(b.completionDate) - new Date(a.completionDate));
+            }, [items]);
+
+            const ItemCard = ({ item }) => {
+                const category = categories[item.category] |
+
+| categories['autres'];
+                const status = getStatus(item.nextMaintenance);
+                const IconComponent = category.icon;
+
+                return (
+                    <div className={`bg-white rounded-lg shadow-md border-l-4 ${getStatusColor(status)} ${justCompleted === item.id? 'ring-2 ring-green-300 bg-green-50' : ''}`}>
+                        <div className="p-4">
+                            <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className={`p-2 rounded-lg ${category.bgClass}`}>
+                                        <IconComponent />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-800 truncate">{item.name}</h3>
+                                        <p className="text-sm text-gray-500">{category.label}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1 ml-2">
+                                    <button onClick={() => startEdit(item)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg"><Edit /></button>
+                                    <button onClick={() => setShowDeleteConfirm(item.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 /></button>
+                                </div>
+                            </div>
+                            <div className="space-y-1 text-sm text-gray-600 mb-4">
+                                <p><span className="font-medium">Prochain:</span> {getStatusText(status, item.nextMaintenance)} ({new Date(item.nextMaintenance).toLocaleDateString('fr-FR')})</p>
+                                <p><span className="font-medium">Dernier:</span> {new Date(item.lastMaintenance).toLocaleDateString('fr-FR')}</p>
+                                {item.notes && <p className="text-xs pt-1"><span className="font-medium">Notes:</span> {item.notes}</p>}
+                            </div>
+                            <button
+                                onClick={() => markAsDone(item.id)}
+                                className={`w-full px-4 py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium ${justCompleted === item.id? 'bg-green-700 text-white' : 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800'}`}
+                                disabled={justCompleted === item.id}
+                            >
+                                <CheckCircle />
+                                {justCompleted === item.id? 'Terminé!' : 'Marquer comme fait'}
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+            
+            const CompletedItemCard = ({ item }) => {
+                const category = categories[item.category] |
+
+| categories['autres'];
+                const IconComponent = category.icon;
+                const completedDate = new Date(item.completionDate);
+                return (
+                    <div className="bg-white rounded-lg shadow-md border-l-4 border-green-500 p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className={`p-2 rounded-lg ${category.bgClass}`}><IconComponent /></div>
+                            <div>
+                                <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                                <p className="text-sm text-gray-600 flex items-center gap-1">
+                                    <CheckCircle className="w-4 h-4 text-green-600" /> Fait le{' '}
+                                    <span className="font-medium">
+                                        {completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const FormView = ({ item, onSave, isEdit }) => {
+                const = useState(item);
+
+                const handleChange = (e) => {
+                    setFormData({...formData, [e.target.name]: e.target.value });
+                };
+
+                const handleSubmit = (e) => {
+                    e.preventDefault();
+                    onSave(formData);
+                };
+
+                return (
+                    <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                        <h2 className="text-xl font-bold text-gray-800">{isEdit? "Modifier l'élément" : "Ajouter un nouvel élément"}</h2>
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" placeholder="Ex: Vidange voiture" required />
+                        </div>
+                        <div>
+                            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                            <select name="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
+                                {Object.entries(categories).map(([key, cat]) => <option key={key} value={key}>{cat.label}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="lastMaintenance" className="block text-sm font-medium text-gray-700 mb-1">Dernier Entretien</label>
+                            <input type="date" name="lastMaintenance" value={formData.lastMaintenance} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" required />
+                        </div>
+                        <div>
+                            <label htmlFor="intervalDays" className="block text-sm font-medium text-gray-700 mb-1">Fréquence (jours)</label>
+                            <input type="number" name="intervalDays" value={formData.intervalDays} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" placeholder="Ex: 365 pour 1 an" required />
+                        </div>
+                        <div>
+                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes (optionnel)</label>
+                            <textarea name="notes" value={formData.notes} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24" placeholder="Détails importants..."></textarea>
+                        </div>
+                        <button type="submit" className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">
+                            {isEdit? "Enregistrer" : "Ajouter"}
+                        </button>
+                    </form>
+                );
+            };
+
+            const renderContent = () => {
+                if (currentView === 'add') {
+                    return <FormView item={newItem} onSave={addItem} isEdit={false} />;
                 }
+                if (currentView === 'edit' && editingItem) {
+                    return <FormView item={editingItem} onSave={saveEdit} isEdit={true} />;
+                }
+                if (currentView === 'history') {
+                    return (
+                        <div className="p-4 space-y-4">
+                            {allCompletedItems.length === 0? (
+                                <div className="text-center py-12">
+                                    <History className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                                    <p className="text-gray-500 text-lg">L'historique est vide</p>
+                                </div>
+                            ) : (
+                                allCompletedItems.map(item => <CompletedItemCard key={`${item.id}-${item.completionDate}`} item={item} />)
+                            )}
+                        </div>
+                    );
+                }
+                // Default is 'list' view
+                return (
+                    <>
+                        <div className="border-b border-gray-200 sticky top-16 bg-gray-50 z-40">
+                            <nav className="-mb-px flex justify-around" aria-label="Tabs">
+                                <button onClick={() => setActiveTab('today')} className={`w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm ${activeTab === 'today'? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                                    Aujourd'hui {itemsToday.length > 0 && `(${itemsToday.length})`}
+                                </button>
+                                <button onClick={() => setActiveTab('upcoming')} className={`w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm ${activeTab === 'upcoming'? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                                    À prévoir
+                                </button>
+                                <button onClick={() => setActiveTab('completed_today')} className={`w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm ${activeTab === 'completed_today'? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                                    Fait {itemsCompletedToday.length > 0 && `(${itemsCompletedToday.length})`}
+                                </button>
+                            </nav>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            {activeTab === 'today' && (
+                                itemsToday.length === 0? <div className="text-center py-12 text-gray-500">Rien à faire aujourd'hui!</div> : itemsToday.map(item => <ItemCard key={item.id} item={item} />)
+                            )}
+                            {activeTab === 'upcoming' && (
+                                itemsUpcoming.length === 0? <div className="text-center py-12 text-gray-500">Aucune tâche à prévoir.</div> : itemsUpcoming.map(item => <ItemCard key={item.id} item={item} />)
+                            )}
+                            {activeTab === 'completed_today' && (
+                                itemsCompletedToday.length === 0? <div className="text-center py-12 text-gray-500">Aucune tâche terminée aujourd'hui.</div> : itemsCompletedToday.map(item => <CompletedItemCard key={item.id} item={{...item, completionDate: item.history[item.history.length-1].date}} />)
+                            )}
+                        </div>
+                    </>
+                );
             };
 
             return (
-                <>
-                    <AppUI
-                        items={items} history={history} currentView={currentView} navigateTo={navigateTo} lastMainView={lastMainView.current} detailedItem={detailedItem} showDetails={showDetails}
-                        newItem={newItem} setNewItem={setNewItem} editingItem={editingItem} setEditingItem={setEditingItem}
-                        justCompleted={justCompleted} showDeleteConfirm={showDeleteConfirm} setShowDeleteConfirm={setShowDeleteConfirm}
-                        showClearHistoryConfirm={showClearHistoryConfirm} setShowClearHistoryConfirm={setShowClearHistoryConfirm}
-                        addItem={addItem} startEdit={startEdit} saveEdit={saveEdit} markAsDone={markAsDone} deleteItem={deleteItem}
-                        clearHistory={clearHistory} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
-                        requestNotificationPermission={requestNotificationPermission} notificationStatus={notificationStatus}
-                        filter={filter} setFilter={setFilter}
-                        categories={categories} 
-                        handleCategorySelectChange={handleCategorySelectChange}
-                        openSections={openSections} toggleSection={toggleSection}
-                        addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory}
-                        newCategoryIcon={newCategoryIcon} setNewCategoryIcon={setNewCategoryIcon}
-                        editingCategoryKey={editingCategoryKey} startEditCategory={startEditCategory} cancelEditCategory={cancelEditCategory} saveEditCategory={saveEditCategory} editedCategoryData={editedCategoryData} setEditedCategoryData={setEditedCategoryData}
-                    />
-                    <CategoryManagerModal 
-                        isOpen={isCategoryModalOpen}
-                        onClose={() => setIsCategoryModalOpen(false)}
-                        categories={categories} 
-                        addCategory={addCategory} 
-                        newCategoryName={newCategoryName} 
-                        setNewCategoryName={setNewCategoryName} 
-                        deleteCategory={deleteCategory}
-                        newCategoryIcon={newCategoryIcon} 
-                        setNewCategoryIcon={setNewCategoryIcon} 
-                        editingCategoryKey={editingCategoryKey} 
-                        startEditCategory={startEditCategory} 
-                        cancelEditCategory={cancelEditCategory} 
-                        saveEditCategory={saveEditCategory} 
-                        editedCategoryData={editedCategoryData} 
-                        setEditedCategoryData={setEditedCategoryData} 
-                    />
-                </>
+                <div className="max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col">
+                    <div className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0 z-50">
+                        <div className="flex items-center gap-3">
+                            {currentView!== 'list' && (
+                                <button onClick={() => setCurrentView('list')} className="p-1"><ArrowLeft /></button>
+                            )}
+                            <h1 className="text-lg font-semibold">
+                                {currentView === 'add'? 'Ajouter' : currentView === 'edit'? 'Modifier' : currentView === 'history'? 'Historique' : 'Assistant d\'Entretien'}
+                            </h1>
+                        </div>
+                        {currentView === 'list' && (
+                            <button onClick={() => setCurrentView('add')} className="p-2 hover:bg-blue-700 rounded-lg"><Plus /></button>
+                        )}
+                    </div>
+
+                    <div className="flex-grow overflow-y-auto pb-20">
+                        {renderContent()}
+                    </div>
+
+                    {showDeleteConfirm && (
+                        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+                            <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Confirmer la suppression</h3>
+                                <p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer "{items.find(item => item.id === showDeleteConfirm)?.name}"?</p>
+                                <div className="flex justify-end space-x-3">
+                                    <button onClick={() => setShowDeleteConfirm(null)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Annuler</button>
+                                    <button onClick={() => deleteItem(showDeleteConfirm)} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Supprimer</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-white border-t border-gray-200 p-3 flex justify-around items-center sticky bottom-0 w-full max-w-md mx-auto z-50">
+                        <button onClick={() => setCurrentView('list')} className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'list'? 'text-blue-600' : 'text-gray-500'}`}>
+                            <CalendarClock className="w-6 h-6" />
+                            <span className="text-xs mt-1">À faire</span>
+                        </button>
+                        <button onClick={() => setCurrentView('history')} className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'history'? 'text-blue-600' : 'text-gray-500'}`}>
+                            <History className="w-6 h-6" />
+                            <span className="text-xs mt-1">Historique</span>
+                        </button>
+                    </div>
+                </div>
             );
         };
 
         ReactDOM.render(<MobileMaintenanceApp />, document.getElementById('root'));
 
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW Registered')).catch(err => console.log(`SW Error: ${err}`)); }); }
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                   .then(registration => console.log('Service Worker enregistré:', registration))
+                   .catch(error => console.error('Échec enregistrement SW:', error));
+            });
+        }
     </script>
 </body>
 </html>
