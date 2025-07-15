@@ -496,10 +496,29 @@
                 return savedItems.map(item => ({ ...item, isRecurring: item.isRecurring === undefined ? true : item.isRecurring }));
             });
             const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
+            
+            // --- DÉBUT DE LA CORRECTION ---
             const [categories, setCategories] = useState(() => {
-                const saved = localStorage.getItem('maintenanceCategories_v1');
-                return saved ? JSON.parse(saved) : defaultCategories;
+                const savedCategoriesJSON = localStorage.getItem('maintenanceCategories_v1');
+                let finalCategories = { ...defaultCategories }; // On commence avec les catégories par défaut
+
+                if (savedCategoriesJSON) {
+                    const savedCategories = JSON.parse(savedCategoriesJSON);
+                    Object.keys(savedCategories).forEach(key => {
+                        // Si la catégorie sauvegardée est une catégorie par défaut, on fusionne
+                        // pour s'assurer qu'elle a bien les infos du nouveau code (comme l'icône).
+                        if (finalCategories[key]) {
+                            finalCategories[key] = { ...finalCategories[key], ...savedCategories[key] };
+                        } else {
+                            // Sinon, c'est une catégorie ajoutée par l'utilisateur, on la garde telle quelle.
+                            finalCategories[key] = savedCategories[key];
+                        }
+                    });
+                }
+                return finalCategories;
             });
+            // --- FIN DE LA CORRECTION ---
+
             const [currentView, setCurrentView] = useState('today');
             const lastMainView = useRef('today');
             const [detailedItem, setDetailedItem] = useState(null);
