@@ -1,7 +1,7 @@
 // --- sw.js ---
 
 // La version du cache DOIT être incrémentée pour déclencher la mise à jour du Service Worker.
-const CACHE_NAME = 'maintenance-app-v4'; 
+const CACHE_NAME = 'maintenance-app-v5'; 
 const urlsToCache =;
 
 // Installation du Service Worker et mise en cache des ressources
