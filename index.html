@@ -62,28 +62,31 @@
 
         const ICONS = { CarIcon, PlugIcon, HouseIcon, Bell, CookingPot, Bath, BedDouble, Fence, Toilet, Hammer, Brush, Scissors, Shovel, Tent, Wrench };
         
-        // --- NOUVEAUTÉ : Palette de couleurs ---
+        // --- NOUVEAUTÉ : Palette de couleurs élargie ---
         const COLOR_PALETTE = {
-            blue: { border: 'border-blue-500', bg: 'bg-blue-100' },
             green: { border: 'border-green-500', bg: 'bg-green-100' },
+            blue: { border: 'border-blue-500', bg: 'bg-blue-100' },
             purple: { border: 'border-purple-500', bg: 'bg-purple-100' },
             pink: { border: 'border-pink-500', bg: 'bg-pink-100' },
             yellow: { border: 'border-yellow-500', bg: 'bg-yellow-100' },
             teal: { border: 'border-teal-500', bg: 'bg-teal-100' },
+            orange: { border: 'border-orange-500', bg: 'bg-orange-100' },
+            cyan: { border: 'border-cyan-500', bg: 'bg-cyan-100' },
+            indigo: { border: 'border-indigo-500', bg: 'bg-indigo-100' },
+            lime: { border: 'border-lime-500', bg: 'bg-lime-100' },
             red: { border: 'border-red-500', bg: 'bg-red-100' },
             gray: { border: 'border-gray-400', bg: 'bg-gray-100' },
         };
         const COLOR_KEYS = Object.keys(COLOR_PALETTE);
 
-        // --- MODIFIÉ : Ajout de la couleur par défaut ---
         const defaultCategories = {
             voiture: { icon: 'CarIcon', label: 'Voiture', colorClass: 'green', isDefault: true },
             electromenager: { icon: 'PlugIcon', label: 'Électroménager', colorClass: 'blue', isDefault: true },
             maison: { icon: 'HouseIcon', label: 'Maison', colorClass: 'purple', isDefault: true },
             jardin: { icon: 'Fence', label: 'Jardin', colorClass: 'teal', isDefault: true },
             cuisine: { icon: 'CookingPot', label: 'Cuisine', colorClass: 'pink', isDefault: true },
-            sdb: { icon: 'Bath', label: 'Salle de bain', colorClass: 'yellow', isDefault: true },
-            chambre: { icon: 'BedDouble', label: 'Chambre', colorClass: 'purple', isDefault: true },
+            sdb: { icon: 'Bath', label: 'Salle de bain', colorClass: 'cyan', isDefault: true },
+            chambre: { icon: 'BedDouble', label: 'Chambre', colorClass: 'indigo', isDefault: true },
             autres: { icon: 'Bell', label: 'Autres', colorClass: 'gray', isDefault: true },
         };
         
@@ -159,7 +162,6 @@
             </footer>
         );
         
-        // --- MODIFIÉ : Utilisation de la couleur de catégorie ---
         const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails, categories }) => {
             const category = categories[item.category] || categories.autres;
             const categoryColor = COLOR_PALETTE[category.colorClass] || COLOR_PALETTE.gray;
@@ -210,6 +212,59 @@
             return (<div className={`bg-white rounded-lg shadow-md border-l-4 ${categoryColor.border} animate-fade-in`}><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${categoryColor.bg}`}><IconComponent /></div><div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div></div><p className="text-sm text-gray-600 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
         };
 
+        // --- NOUVEAU : Composant de liste déroulante personnalisée ---
+        const CustomCategorySelect = ({ categories, selectedCategoryKey, onSelectCategory }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const selectRef = useRef(null);
+            const selectedCategory = categories[selectedCategoryKey] || categories.autres;
+            const SelectedIcon = ICONS[selectedCategory.icon] || Bell;
+            const selectedColor = COLOR_PALETTE[selectedCategory.colorClass] || COLOR_PALETTE.gray;
+
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (selectRef.current && !selectRef.current.contains(event.target)) {
+                        setIsOpen(false);
+                    }
+                };
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, [selectRef]);
+
+            return (
+                <div className="relative" ref={selectRef}>
+                    <button onClick={() => setIsOpen(!isOpen)} className="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-3 flex items-center justify-between text-left">
+                        <span className="flex items-center gap-3">
+                            <span className={`w-full h-full absolute left-0 top-0 opacity-20 ${selectedColor.bg}`}></span>
+                            <SelectedIcon />
+                            <span className="relative">{selectedCategory.label}</span>
+                        </span>
+                        <ChevronDown />
+                    </button>
+                    {isOpen && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                            {Object.entries(categories).map(([key, cat]) => {
+                                const CatIcon = ICONS[cat.icon] || Bell;
+                                const catColor = COLOR_PALETTE[cat.colorClass] || COLOR_PALETTE.gray;
+                                return (
+                                    <div
+                                        key={key}
+                                        onClick={() => {
+                                            onSelectCategory(key);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`p-3 flex items-center gap-3 cursor-pointer hover:opacity-80 ${catColor.bg}`}
+                                    >
+                                        <CatIcon />
+                                        <span>{cat.label}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         const ItemForm = ({ onSubmit, itemState, setItemState, title, buttonText, categories, handleCategorySelectChange }) => {
             const handleRecurringChange = (e) => {
                 const isRecurring = e.target.checked;
@@ -221,10 +276,13 @@
                     <h2 className="text-xl font-bold mb-4 text-gray-800">{title}</h2>
                     <div className="space-y-4">
                         <input name="name" type="text" value={itemState.name} onChange={(e) => setItemState({...itemState, name: e.target.value})} placeholder="Nom de l'élément" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
-                        <select name="category" value={itemState.category} onChange={(e) => handleCategorySelectChange(e, setItemState)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
-                            {Object.entries(categories).map(([key, cat]) => (<option key={key} value={key}>{cat.label}</option>))}
-                            <option value="--add-new--" className="font-bold text-blue-600">-- Gérer les catégories --</option>
-                        </select>
+                        
+                        {/* --- MODIFIÉ : Utilisation du nouveau composant de sélection --- */}
+                        <CustomCategorySelect 
+                            categories={categories}
+                            selectedCategoryKey={itemState.category}
+                            onSelectCategory={(categoryKey) => setItemState(prev => ({...prev, category: categoryKey}))}
+                        />
                         
                         <div className="flex items-center space-x-2">
                             <input id="isRecurring" type="checkbox" checked={itemState.isRecurring} onChange={handleRecurringChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded"/>
@@ -244,9 +302,13 @@
                         )}
                         
                         <textarea name="notes" value={itemState.notes} onChange={(e) => setItemState({...itemState, notes: e.target.value})} placeholder="Notes (optionnel)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24"></textarea>
-                        <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">
-                            {buttonText}
-                        </button>
+                        
+                        <div className="border-t pt-4 flex flex-col gap-4">
+                           <button onClick={() => handleCategorySelectChange({target: {value: '--add-new--'}})} className="w-full text-center text-blue-600 font-medium">Gérer les catégories</button>
+                           <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">
+                               {buttonText}
+                           </button>
+                        </div>
                     </div>
                 </div>
             );
@@ -322,7 +384,6 @@
             return (<div className="space-y-4 animate-fade-in">{items.map(item => view === 'history' ? <HistoryCard key={item.id} item={item} categories={categories}/> : <ItemCard key={item.id} item={item} {...props} categories={categories} />)}</div>);
         };
         
-        // --- NOUVEAUTÉ : Composant pour choisir une couleur ---
         const ColorPicker = ({ selectedColor, onSelectColor }) => {
             return (
                 <div>
@@ -374,14 +435,15 @@
                          <div className={`overflow-hidden content-transition ${openSections.categories ? 'max-h-screen' : 'max-h-0'}`}>
                               <div className="p-4 border-t space-y-3">
                                 <h3 className="font-semibold">Catégories existantes</h3>
-                                <div className="max-h-60 overflow-y-auto pr-2">
+                                <div className="max-h-60 overflow-y-auto pr-2 space-y-2">
                                      {Object.entries(categories).map(([key, cat]) => {
                                          const Icon = ICONS[cat.icon] || Bell;
                                          const isEditing = editingCategoryKey === key;
+                                         const categoryColor = COLOR_PALETTE[cat.colorClass] || COLOR_PALETTE.gray;
                                          return (
-                                             <div key={key} className="p-2 border-b">
+                                             <div key={key}>
                                              {isEditing ? (
-                                                 <div className="space-y-3">
+                                                 <div className={`p-3 space-y-3 border-2 rounded-lg ${categoryColor.border}`}>
                                                      <input type="text" value={editedCategoryData.label} onChange={(e) => setEditedCategoryData({...editedCategoryData, label: e.target.value})} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
                                                      <div>
                                                         <p className="text-sm text-gray-600 mb-2">Icône :</p>
@@ -400,16 +462,16 @@
                                                      </div>
                                                  </div>
                                              ) : (
-                                                 <div className="flex items-center justify-between">
+                                                 // --- MODIFIÉ : Affichage de la catégorie en barre colorée ---
+                                                 <div className={`flex items-center justify-between p-3 rounded-lg ${categoryColor.bg}`}>
                                                      <div className="flex items-center gap-3">
-                                                         <span className={`w-3 h-3 rounded-full ${COLOR_PALETTE[cat.colorClass]?.bg || COLOR_PALETTE.gray.bg}`}></span>
-                                                         <Icon className="w-5 h-5 text-gray-600" />
-                                                         <span>{cat.label}</span>
+                                                         <Icon className="w-5 h-5 text-gray-700" />
+                                                         <span className="font-medium text-gray-700">{cat.label}</span>
                                                      </div>
                                                      {!cat.isDefault && (
                                                          <div className="flex gap-2">
-                                                             <button onClick={() => startEditCategory(key, cat)} className="p-1 text-gray-400 hover:text-blue-500"><Edit className="w-5 h-5" /></button>
-                                                             <button onClick={() => deleteCategory(key)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+                                                             <button onClick={() => startEditCategory(key, cat)} className="p-1 text-gray-500 hover:text-blue-600"><Edit className="w-5 h-5" /></button>
+                                                             <button onClick={() => deleteCategory(key)} className="p-1 text-gray-500 hover:text-red-600"><Trash2 className="w-5 h-5" /></button>
                                                          </div>
                                                      )}
                                                  </div>
@@ -554,7 +616,6 @@
             });
             const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
             
-            // --- MODIFIÉ : Logique de chargement des catégories améliorée ---
             const [categories, setCategories] = useState(() => {
                 const savedCategoriesJSON = localStorage.getItem('maintenanceCategories_v1');
                 let finalCategories = { ...defaultCategories };
@@ -570,7 +631,6 @@
                     });
                 }
                 
-                // Assure que chaque catégorie a une couleur, même les anciennes
                 Object.keys(finalCategories).forEach((key, index) => {
                     if (!finalCategories[key].colorClass) {
                         finalCategories[key].colorClass = COLOR_KEYS[index % COLOR_KEYS.length];
@@ -591,11 +651,11 @@
             const [newItem, setNewItem] = useState({ name: '', category: 'voiture', lastMaintenance: getTodayDateString(), intervalDays: '', notes: '', isRecurring: true });
             const [newCategoryName, setNewCategoryName] = useState('');
             const [newCategoryIcon, setNewCategoryIcon] = useState('Wrench');
-            const [newCategoryColor, setNewCategoryColor] = useState(COLOR_KEYS[0]); // NOUVEAU
+            const [newCategoryColor, setNewCategoryColor] = useState(COLOR_KEYS[0]);
             const [searchQuery, setSearchQuery] = useState('');
             const [notificationStatus, setNotificationStatus] = useState(Notification.permission);
             const [editingCategoryKey, setEditingCategoryKey] = useState(null);
-            const [editedCategoryData, setEditedCategoryData] = useState({ label: '', icon: '', colorClass: '' }); // MODIFIÉ
+            const [editedCategoryData, setEditedCategoryData] = useState({ label: '', icon: '', colorClass: '' });
             const [openSections, setOpenSections] = useState({ notifications: false, categories: false });
             const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
@@ -707,7 +767,6 @@
             const clearHistory = () => { setHistory([]); setShowClearHistoryConfirm(false); };
             const showDetails = (item) => { setDetailedItem(item); navigateTo('details'); };
 
-            // --- MODIFIÉ : Ajout de la couleur à la nouvelle catégorie ---
             const addCategory = () => {
                 if (!newCategoryName.trim()) { alert("Le nom de la catégorie ne peut pas être vide."); return; }
                 const newKey = newCategoryName.trim().toLowerCase().replace(/\s+/g, '_');
@@ -732,7 +791,6 @@
                 setItems(updatedItems);
             };
 
-            // --- MODIFIÉ : Prise en compte de la couleur à l'édition ---
             const startEditCategory = (key, categoryData) => {
                 setEditingCategoryKey(key);
                 setEditedCategoryData({ label: categoryData.label, icon: categoryData.icon, colorClass: categoryData.colorClass });
@@ -757,12 +815,10 @@
                 setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
             };
             
-            const handleCategorySelectChange = (e, setItemState) => {
+            const handleCategorySelectChange = (e) => {
                 const value = e.target.value;
                 if (value === '--add-new--') {
                     setIsCategoryModalOpen(true);
-                } else {
-                    setItemState(prev => ({...prev, category: value}));
                 }
             };
 
