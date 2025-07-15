@@ -151,7 +151,6 @@
             </footer>
         );
         
-        // --- MODIFIÉ : Logique d'affichage de la date ---
         const ItemCard = ({ item, startEdit, setShowDeleteConfirm, justCompleted, markAsDone, showDetails, categories }) => {
             const category = categories[item.category] || categories.autres;
             const categoryColor = COLOR_PALETTE[category.colorClass] || COLOR_PALETTE.gray;
@@ -444,6 +443,21 @@
                 return 'Désactivé';
             };
             const statusText = getFriendlyStatus(notificationStatus);
+            
+            // --- NOUVEAUTÉ : Bouton de test pour les notifications ---
+            const handleTestNotification = () => {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification('Test Upkeep', {
+                            body: 'Si vous voyez ceci, les notifications fonctionnent ! 🎉',
+                            icon: './icon-192.png'
+                        });
+                    });
+                } else {
+                    alert('Les permissions de notification ne sont pas accordées.');
+                }
+            };
+
             return (
                 <div className="p-4 animate-fade-in space-y-4">
                     <div className="bg-white rounded-lg shadow">
@@ -452,9 +466,14 @@
                             {openSections.notifications ? <ChevronUp /> : <ChevronDown />}
                         </button>
                         <div className={`overflow-hidden content-transition ${openSections.notifications ? 'max-h-96' : 'max-h-0'}`}>
-                            <div className="p-4 border-t">
-                                <p className="text-sm text-gray-600 mb-4">Statut actuel : <span className="font-semibold">{statusText}</span></p>
+                            <div className="p-4 border-t space-y-3">
+                                <p className="text-sm text-gray-600">Statut actuel : <span className="font-semibold">{statusText}</span></p>
                                 <button onClick={requestNotificationPermission} disabled={notificationStatus === 'granted'} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}</button>
+                                {notificationStatus === 'granted' && (
+                                    <button onClick={handleTestNotification} className="w-full bg-gray-200 text-gray-800 p-3 rounded-lg font-medium hover:bg-gray-300">
+                                        Tester la notification
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
