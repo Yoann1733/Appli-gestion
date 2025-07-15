@@ -62,7 +62,6 @@
 
         const ICONS = { CarIcon, PlugIcon, HouseIcon, Bell, CookingPot, Bath, BedDouble, Fence, Toilet, Hammer, Brush, Scissors, Shovel, Tent, Wrench };
         
-        // --- NOUVEAUTÉ : Palette de couleurs élargie ---
         const COLOR_PALETTE = {
             green: { border: 'border-green-500', bg: 'bg-green-100' },
             blue: { border: 'border-blue-500', bg: 'bg-blue-100' },
@@ -212,10 +211,12 @@
             return (<div className={`bg-white rounded-lg shadow-md border-l-4 ${categoryColor.border} animate-fade-in`}><div className="p-4"><div className="flex items-center gap-3 mb-2"><div className={`p-2 rounded-lg ${categoryColor.bg}`}><IconComponent /></div><div><h3 className="font-semibold">{item.name}</h3><p className="text-sm text-gray-500">{category.label}</p></div></div><p className="text-sm text-gray-600 flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-600" /> Fait le <span className="font-medium">{completedDate.toLocaleDateString('fr-FR')} à {completedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></p>{item.notes && <p className="text-xs text-gray-500 mt-2">Notes: {item.notes}</p>}</div></div>);
         };
 
-        // --- NOUVEAU : Composant de liste déroulante personnalisée ---
-        const CustomCategorySelect = ({ categories, selectedCategoryKey, onSelectCategory }) => {
+        // --- MODIFIÉ : Liste déroulante personnalisée et intelligente ---
+        const CustomCategorySelect = ({ categories, selectedCategoryKey, onSelectCategory, onManageCategories }) => {
             const [isOpen, setIsOpen] = useState(false);
+            const [opensUp, setOpensUp] = useState(false);
             const selectRef = useRef(null);
+            
             const selectedCategory = categories[selectedCategoryKey] || categories.autres;
             const SelectedIcon = ICONS[selectedCategory.icon] || Bell;
             const selectedColor = COLOR_PALETTE[selectedCategory.colorClass] || COLOR_PALETTE.gray;
@@ -230,18 +231,31 @@
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             }, [selectRef]);
 
+            const handleOpen = () => {
+                if (selectRef.current) {
+                    const rect = selectRef.current.getBoundingClientRect();
+                    // Si le bas du bouton est à moins de 250px du bas de la fenêtre, on ouvre vers le haut
+                    if (window.innerHeight - rect.bottom < 250) {
+                        setOpensUp(true);
+                    } else {
+                        setOpensUp(false);
+                    }
+                }
+                setIsOpen(!isOpen);
+            };
+
             return (
                 <div className="relative" ref={selectRef}>
-                    <button onClick={() => setIsOpen(!isOpen)} className="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-3 flex items-center justify-between text-left">
-                        <span className="flex items-center gap-3">
-                            <span className={`w-full h-full absolute left-0 top-0 opacity-20 ${selectedColor.bg}`}></span>
+                    <button onClick={handleOpen} className="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-3 flex items-center justify-between text-left overflow-hidden">
+                        <span className={`w-full h-full absolute left-0 top-0 opacity-20 ${selectedColor.bg}`}></span>
+                        <span className="flex items-center gap-3 z-10">
                             <SelectedIcon />
-                            <span className="relative">{selectedCategory.label}</span>
+                            <span>{selectedCategory.label}</span>
                         </span>
-                        <ChevronDown />
+                        <span className="z-10">{isOpen ? <ChevronUp /> : <ChevronDown />}</span>
                     </button>
                     {isOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        <div className={`absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto ${opensUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                             {Object.entries(categories).map(([key, cat]) => {
                                 const CatIcon = ICONS[cat.icon] || Bell;
                                 const catColor = COLOR_PALETTE[cat.colorClass] || COLOR_PALETTE.gray;
@@ -259,6 +273,16 @@
                                     </div>
                                 );
                             })}
+                            {/* --- NOUVEAUTÉ : Bouton Gérer intégré à la liste --- */}
+                            <div
+                                onClick={() => {
+                                    onManageCategories();
+                                    setIsOpen(false);
+                                }}
+                                className="p-3 text-center font-bold text-blue-600 cursor-pointer hover:bg-gray-100 border-t"
+                            >
+                                -- Gérer les catégories --
+                            </div>
                         </div>
                     )}
                 </div>
@@ -277,11 +301,11 @@
                     <div className="space-y-4">
                         <input name="name" type="text" value={itemState.name} onChange={(e) => setItemState({...itemState, name: e.target.value})} placeholder="Nom de l'élément" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"/>
                         
-                        {/* --- MODIFIÉ : Utilisation du nouveau composant de sélection --- */}
                         <CustomCategorySelect 
                             categories={categories}
                             selectedCategoryKey={itemState.category}
                             onSelectCategory={(categoryKey) => setItemState(prev => ({...prev, category: categoryKey}))}
+                            onManageCategories={() => handleCategorySelectChange({target: {value: '--add-new--'}})}
                         />
                         
                         <div className="flex items-center space-x-2">
@@ -303,12 +327,9 @@
                         
                         <textarea name="notes" value={itemState.notes} onChange={(e) => setItemState({...itemState, notes: e.target.value})} placeholder="Notes (optionnel)" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 h-24"></textarea>
                         
-                        <div className="border-t pt-4 flex flex-col gap-4">
-                           <button onClick={() => handleCategorySelectChange({target: {value: '--add-new--'}})} className="w-full text-center text-blue-600 font-medium">Gérer les catégories</button>
-                           <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">
-                               {buttonText}
-                           </button>
-                        </div>
+                        <button onClick={onSubmit} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700">
+                            {buttonText}
+                        </button>
                     </div>
                 </div>
             );
@@ -462,7 +483,6 @@
                                                      </div>
                                                  </div>
                                              ) : (
-                                                 // --- MODIFIÉ : Affichage de la catégorie en barre colorée ---
                                                  <div className={`flex items-center justify-between p-3 rounded-lg ${categoryColor.bg}`}>
                                                      <div className="flex items-center gap-3">
                                                          <Icon className="w-5 h-5 text-gray-700" />
@@ -816,8 +836,7 @@
             };
             
             const handleCategorySelectChange = (e) => {
-                const value = e.target.value;
-                if (value === '--add-new--') {
+                if (e.target.value === '--add-new--') {
                     setIsCategoryModalOpen(true);
                 }
             };
