@@ -917,7 +917,7 @@
 
         ReactDOM.render(<MobileMaintenanceApp />, document.getElementById('root'));
 
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW Registered')).catch(err => console.log(`SW Error: ${err}`)); }); }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/Appli-gestion/sw.js').then(reg => console.log('SW Registered')).catch(err => console.log(SW Error: ${err})); }); }
     </script>
 </body>
 </html>
