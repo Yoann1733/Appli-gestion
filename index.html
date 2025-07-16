@@ -436,6 +436,7 @@
             );
         };
 
+        // --- MODIFIÉ : Ajout des alertes de debug dans le bouton de test ---
         const SettingsView = ({ requestNotificationPermission, notificationStatus, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory, newCategoryIcon, setNewCategoryIcon, newCategoryColor, setNewCategoryColor, editingCategoryKey, startEditCategory, cancelEditCategory, saveEditCategory, editedCategoryData, setEditedCategoryData, openSections, toggleSection }) => {
             const getFriendlyStatus = (status) => {
                 if (status === 'granted') return 'Activé';
@@ -444,18 +445,26 @@
             };
             const statusText = getFriendlyStatus(notificationStatus);
             
-            // --- NOUVEAUTÉ : Bouton de test pour les notifications ---
             const handleTestNotification = () => {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification('Test Upkeep', {
-                            body: 'Si vous voyez ceci, les notifications fonctionnent ! 🎉',
-                            icon: './icon-192.png'
-                        });
-                    });
-                } else {
-                    alert('Les permissions de notification ne sont pas accordées.');
+                alert("1 - Bouton de test cliqué.");
+                if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                    alert("2 - API Notification ou ServiceWorker non disponible.");
+                    return;
                 }
+                alert(`3 - Statut de permission actuel : ${Notification.permission}`);
+                navigator.serviceWorker.ready.then(registration => {
+                    alert("4 - Service Worker prêt ! Tentative d'affichage.");
+                    registration.showNotification('Test Upkeep', {
+                        body: 'Si vous voyez ceci, les notifications fonctionnent ! 🎉',
+                        icon: './icon-192.png'
+                    }).then(() => {
+                        alert("5 - showNotification a été appelé sans erreur.");
+                    }).catch(err => {
+                        alert(`6 - ERREUR lors de l'affichage : ${err.message}`);
+                    });
+                }).catch(err => {
+                    alert(`Erreur d'accès au Service Worker : ${err.message}`);
+                });
             };
 
             return (
