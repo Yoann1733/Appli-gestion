@@ -1,7 +1,7 @@
 // sw.js
 
 // Incrémentez la version pour forcer la mise à jour
-const CACHE_NAME = 'maintenance-app-v7'; 
+const CACHE_NAME = 'maintenance-app-v8'; 
 const urlsToCache = [
     './',
     './index.html',
