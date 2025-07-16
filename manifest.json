@@ -2,7 +2,7 @@
   "name": "Upkeep",
   "short_name": "Upkeep",
   "description": "Votre assistant personnel pour la gestion des tâches quotidiennes.",
-  "start_url": "./index.html",
+  "start_url": "/Appli-gestion/",
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#2563eb",
