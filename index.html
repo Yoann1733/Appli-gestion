@@ -14,6 +14,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
     <style>
         input, select, textarea { font-size: 16px !important; }
         body { margin: 0; padding: 0; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
@@ -28,7 +29,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- Icônes ---
+        // --- Icônes (inchangées) ---
         const Bell = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m13.73 21a2 2 0 0 1-3.46 0"/></svg>);
         const Plus = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-7-7v14"/></svg>);
         const ArrowLeft = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
@@ -436,7 +437,6 @@
             );
         };
 
-        // --- MODIFIÉ : Ajout des alertes de debug dans le bouton de test ---
         const SettingsView = ({ requestNotificationPermission, notificationStatus, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory, newCategoryIcon, setNewCategoryIcon, newCategoryColor, setNewCategoryColor, editingCategoryKey, startEditCategory, cancelEditCategory, saveEditCategory, editedCategoryData, setEditedCategoryData, openSections, toggleSection }) => {
             const getFriendlyStatus = (status) => {
                 if (status === 'granted') return 'Activé';
@@ -446,25 +446,16 @@
             const statusText = getFriendlyStatus(notificationStatus);
             
             const handleTestNotification = () => {
-                alert("1 - Bouton de test cliqué.");
-                if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-                    alert("2 - API Notification ou ServiceWorker non disponible.");
-                    return;
-                }
-                alert(`3 - Statut de permission actuel : ${Notification.permission}`);
-                navigator.serviceWorker.ready.then(registration => {
-                    alert("4 - Service Worker prêt ! Tentative d'affichage.");
-                    registration.showNotification('Test Upkeep', {
-                        body: 'Si vous voyez ceci, les notifications fonctionnent ! 🎉',
-                        icon: './icon-192.png'
-                    }).then(() => {
-                        alert("5 - showNotification a été appelé sans erreur.");
-                    }).catch(err => {
-                        alert(`6 - ERREUR lors de l'affichage : ${err.message}`);
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification('Test Upkeep', {
+                            body: 'Si vous voyez ceci, les notifications fonctionnent ! 🎉',
+                            icon: './icon-192.png'
+                        });
                     });
-                }).catch(err => {
-                    alert(`Erreur d'accès au Service Worker : ${err.message}`);
-                });
+                } else {
+                    alert('Les permissions de notification ne sont pas accordées.');
+                }
             };
 
             return (
@@ -477,7 +468,7 @@
                         <div className={`overflow-hidden content-transition ${openSections.notifications ? 'max-h-96' : 'max-h-0'}`}>
                             <div className="p-4 border-t space-y-3">
                                 <p className="text-sm text-gray-600">Statut actuel : <span className="font-semibold">{statusText}</span></p>
-                                <button onClick={requestNotificationPermission} disabled={notificationStatus === 'granted'} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{notificationStatus === 'granted' ? 'Notifications activées' : 'Activer les notifications'}</button>
+                                <button onClick={requestNotificationPermission} disabled={notificationStatus === 'granted'} className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">{notificationStatus === 'granted' ? 'Notifications programmées' : 'Activer les notifications'}</button>
                                 {notificationStatus === 'granted' && (
                                     <button onClick={handleTestNotification} className="w-full bg-gray-200 text-gray-800 p-3 rounded-lg font-medium hover:bg-gray-300">
                                         Tester la notification
@@ -604,8 +595,12 @@
             filter, setFilter, categories, addCategory, newCategoryName, setNewCategoryName, deleteCategory,
             newCategoryIcon, setNewCategoryIcon, newCategoryColor, setNewCategoryColor,
             editingCategoryKey, startEditCategory, cancelEditCategory, saveEditCategory, editedCategoryData, setEditedCategoryData,
-            openSections, toggleSection, handleCategorySelectChange
+            openSections, toggleSection, handleCategorySelectChange, isDataLoaded
         }) => {
+            if (!isDataLoaded) {
+                return <div className="flex justify-center items-center h-screen">Chargement...</div>;
+            }
+
             const getVisibleItems = (view) => {
                 let list = items;
                 if (searchQuery && (view === 'today' || view === 'upcoming')) {
@@ -668,35 +663,45 @@
         const MobileMaintenanceApp = () => {
             const getTodayDateString = () => new Date().toISOString().split('T')[0];
         
-            const [items, setItems] = useState(() => {
-                const savedItems = JSON.parse(localStorage.getItem('maintenanceItems_v3')) || [];
-                return savedItems.map(item => ({ ...item, isRecurring: item.isRecurring === undefined ? true : item.isRecurring }));
-            });
-            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('maintenanceHistory_v2')) || []);
-            
-            const [categories, setCategories] = useState(() => {
-                const savedCategoriesJSON = localStorage.getItem('maintenanceCategories_v1');
-                let finalCategories = { ...defaultCategories };
+            const [items, setItems] = useState([]);
+            const [history, setHistory] = useState([]);
+            const [categories, setCategories] = useState({});
+            const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-                if (savedCategoriesJSON) {
-                    const savedCategories = JSON.parse(savedCategoriesJSON);
-                    Object.keys(savedCategories).forEach(key => {
-                        if (finalCategories[key]) {
-                            finalCategories[key] = { ...finalCategories[key], ...savedCategories[key] };
-                        } else {
-                            finalCategories[key] = savedCategories[key];
+            useEffect(() => {
+                async function loadData() {
+                    const savedItems = await idbKeyval.get('maintenanceItems_v3') || [];
+                    const savedHistory = await idbKeyval.get('maintenanceHistory_v2') || [];
+                    const savedCategoriesJSON = await idbKeyval.get('maintenanceCategories_v1');
+                    
+                    let finalCategories = { ...defaultCategories };
+                    if (savedCategoriesJSON) {
+                        try {
+                            const savedCategories = JSON.parse(savedCategoriesJSON);
+                            Object.keys(savedCategories).forEach(key => {
+                                finalCategories[key] = { ...defaultCategories[key], ...savedCategories[key] };
+                            });
+                        } catch (e) {
+                            console.error("Erreur de parsing des catégories JSON", e);
+                        }
+                    }
+                    Object.keys(finalCategories).forEach((key, index) => {
+                        if (!finalCategories[key].colorClass) {
+                            finalCategories[key].colorClass = COLOR_KEYS[index % COLOR_KEYS.length];
                         }
                     });
-                }
-                
-                Object.keys(finalCategories).forEach((key, index) => {
-                    if (!finalCategories[key].colorClass) {
-                        finalCategories[key].colorClass = COLOR_KEYS[index % COLOR_KEYS.length];
-                    }
-                });
 
-                return finalCategories;
-            });
+                    setItems(savedItems.map(item => ({ ...item, isRecurring: item.isRecurring !== false })));
+                    setHistory(savedHistory);
+                    setCategories(finalCategories);
+                    setIsDataLoaded(true);
+                }
+                loadData();
+            }, []);
+
+            useEffect(() => { if (isDataLoaded) idbKeyval.set('maintenanceItems_v3', items); }, [items, isDataLoaded]);
+            useEffect(() => { if (isDataLoaded) idbKeyval.set('maintenanceHistory_v2', history); }, [history, isDataLoaded]);
+            useEffect(() => { if (isDataLoaded) idbKeyval.set('maintenanceCategories_v1', JSON.stringify(categories)); }, [categories, isDataLoaded]);
 
             const [currentView, setCurrentView] = useState('today');
             const lastMainView = useRef('today');
@@ -716,48 +721,39 @@
             const [editedCategoryData, setEditedCategoryData] = useState({ label: '', icon: '', colorClass: '' });
             const [openSections, setOpenSections] = useState({ notifications: false, categories: false });
             const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-
-            useEffect(() => { localStorage.setItem('maintenanceItems_v3', JSON.stringify(items)); }, [items]);
-            useEffect(() => { localStorage.setItem('maintenanceHistory_v2', JSON.stringify(history)); }, [history]);
-            useEffect(() => { localStorage.setItem('maintenanceCategories_v1', JSON.stringify(categories)); }, [categories]);
             
-            useEffect(() => {
-                const handleVisibilityChange = () => {
-                    if (document.visibilityState === 'hidden' && notificationStatus === 'granted') {
-                        const lastNotificationDate = localStorage.getItem('lastNotificationDate');
-                        const today = getTodayDateString();
-                        if (lastNotificationDate === today) return;
-
-                        const urgentItems = items.filter(item => getStatus(item.nextMaintenance) === 'overdue' || getStatus(item.nextMaintenance) === 'urgent');
-                        if (urgentItems.length > 0) {
-                            let title = "Rappel d'entretien";
-                            let body = `Vous avez ${urgentItems.length} tâches urgentes ou en retard.`;
-                            if (urgentItems.length === 1) { body = `${urgentItems[0].name} est à faire bientôt !`; }
-                            navigator.serviceWorker.ready.then(registration => {
-                                registration.showNotification(title, { body, vibrate: [200] });
-                                localStorage.setItem('lastNotificationDate', today);
+            const setupPeriodicSync = async () => {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    if ('periodicSync' in registration) {
+                        const tags = await registration.periodicSync.getTags();
+                        if (!tags.includes('daily-task-check')) {
+                            await registration.periodicSync.register('daily-task-check', {
+                                minInterval: 12 * 60 * 60 * 1000,
                             });
+                            alert('Notifications programmées activées ! Vous recevrez des rappels autour de 11h et 18h.');
+                        } else {
+                            console.log('Synchronisation périodique déjà enregistrée.');
                         }
+                    } else {
+                        alert("L'API de synchronisation périodique n'est pas supportée sur ce navigateur. Les notifications ne seront pas fiables.");
                     }
-                };
-                document.addEventListener('visibilitychange', handleVisibilityChange);
-                return () => { document.removeEventListener('visibilitychange', handleVisibilityChange); };
-            }, [items, notificationStatus]);
-            
-            const navigateTo = (view) => {
-                if (['today', 'upcoming', 'history', 'settings'].includes(view)) {
-                    lastMainView.current = view;
+                } catch (error) {
+                    console.error("Échec de l'enregistrement de la synchronisation périodique:", error);
                 }
-                setCurrentView(view);
             };
 
             const requestNotificationPermission = async () => {
-                if (!('Notification' in window) || !navigator.serviceWorker) { alert("Ce navigateur ne supporte pas les notifications."); return; }
+                if (!('Notification' in window) || !navigator.serviceWorker) {
+                    alert("Ce navigateur ne supporte pas les notifications.");
+                    return;
+                }
                 const permission = await Notification.requestPermission();
                 setNotificationStatus(permission);
                 if (permission === 'granted') {
+                    await setupPeriodicSync();
                     navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification('Upkeep', { body: 'Les notifications sont activées !', icon: './icon-192.png', badge: './icon-96.png', vibrate: [200, 100, 200] });
+                        registration.showNotification('Upkeep', { body: 'Les notifications sont activées !', icon: './icon-192.png' });
                     });
                 }
             };
@@ -896,6 +892,7 @@
                         addCategory={addCategory} newCategoryName={newCategoryName} setNewCategoryName={setNewCategoryName} deleteCategory={deleteCategory}
                         newCategoryIcon={newCategoryIcon} setNewCategoryIcon={setNewCategoryIcon} newCategoryColor={newCategoryColor} setNewCategoryColor={setNewCategoryColor}
                         editingCategoryKey={editingCategoryKey} startEditCategory={startEditCategory} cancelEditCategory={cancelEditCategory} saveEditCategory={saveEditCategory} editedCategoryData={editedCategoryData} setEditedCategoryData={setEditedCategoryData}
+                        isDataLoaded={isDataLoaded}
                     />
                     <CategoryManagerModal 
                         isOpen={isCategoryModalOpen}
@@ -917,10 +914,10 @@
 
         ReactDOM.render(<MobileMaintenanceApp />, document.getElementById('root'));
 
-                if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/Appli-gestion/sw.js')
-                    .then(reg => console.log('SW Registered'))
+                    .then(reg => console.log('SW Registered:', reg))
                     .catch(err => console.log(`SW Error: ${err}`));
             });
         }
