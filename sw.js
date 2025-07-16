@@ -1,14 +1,15 @@
 // sw.js
 
-// Incrémentez la version pour forcer la mise à jour
-const CACHE_NAME = 'maintenance-app-v8'; 
+// IMPORTANT : Le nom du cache est changé pour forcer une mise à jour propre.
+const CACHE_NAME = 'upkeep-cache-v10'; 
+
+// --- MODIFIÉ : Les chemins sont maintenant corrects pour votre site ---
 const urlsToCache = [
-    './',
-    './index.html',
-    './manifest.json',
-    './icon-192.png',
-    './icon-512.png',
-    // --- AJOUT : Mise en cache des scripts externes pour un vrai mode hors-ligne ---
+    '/Appli-gestion/',
+    '/Appli-gestion/index.html',
+    '/Appli-gestion/manifest.json',
+    '/Appli-gestion/icon-192.png',
+    '/Appli-gestion/icon-512.png',
     'https://unpkg.com/react@18/umd/react.production.min.js',
     'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
     'https://unpkg.com/@babel/standalone/babel.min.js',
@@ -24,7 +25,7 @@ self.addEventListener('install', (event) => {
               return cache.addAll(urlsToCache);
           })
           .catch((error) => {
-              console.error('SW: Échec de la mise en cache :', error);
+              console.error('SW: Échec de la mise en cache. Vérifiez les chemins dans urlsToCache.', error);
           })
     );
     self.skipWaiting(); 
@@ -50,7 +51,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // On ne gère que les requêtes GET
     if (event.request.method !== 'GET') {
         return;
     }
@@ -58,14 +58,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request)
           .then((response) => {
-              // Si la ressource est dans le cache, on la retourne.
               if (response) {
                   return response;
               }
               
-              // Sinon, on la récupère sur le réseau.
               return fetch(event.request).then((networkResponse) => {
-                  // On ne met en cache que les réponses valides pour éviter les erreurs
                   if (networkResponse && networkResponse.status === 200) {
                       const responseToCache = networkResponse.clone();
                       caches.open(CACHE_NAME).then((cache) => {
@@ -77,8 +74,6 @@ self.addEventListener('fetch', (event) => {
           })
           .catch((error) => {
               console.error('SW: Échec du fetch :', error);
-              // Optionnel: retourner une page offline.html si le réseau et le cache échouent
-              // return caches.match('/offline.html');
           })
     );
 });
