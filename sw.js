@@ -1,6 +1,6 @@
-// sw.js (Version Finale v2 - Horaires élargis et icône corrigée)
+// sw.js (Version Finale v3 - Sans contrainte d'horaire)
 
-const CACHE_NAME = 'upkeep-cache-v-final-robust-2'; 
+const CACHE_NAME = 'upkeep-cache-v-final-robust-3'; 
 
 importScripts('https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js');
 
@@ -18,7 +18,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', (event) => {
-    console.log('SW: Installation de la version finale v2...');
+    console.log('SW: Installation de la version finale v3...');
     event.waitUntil(
         caches.open(CACHE_NAME)
           .then((cache) => cache.addAll(urlsToCache))
@@ -28,7 +28,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    console.log('SW: Activation de la version finale v2...');
+    console.log('SW: Activation de la version finale v3...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -57,52 +57,43 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
+// --- MODIFIÉ : Logique de notification simplifiée ---
 async function checkTasksAndNotify() {
     try {
         const todayStr = new Date().toISOString().split('T')[0];
-        const hour = new Date().getHours();
+        const lastNotifDate = await idbKeyval.get('lastNotifDate');
 
-        let notifSlot = null;
-        // --- MODIFIÉ : Créneaux horaires élargis ---
-        if (hour >= 9 && hour < 12) {
-            notifSlot = 'matin';
-        } else if (hour >= 16 && hour < 20) {
-            notifSlot = 'soir';
-        }
-
-        if (!notifSlot) {
-            console.log(`SW: Heure actuelle (${hour}h) hors des créneaux.`);
-            return;
-        }
-
-        const lastNotifDate = await idbKeyval.get(`lastNotifDate_${notifSlot}`);
+        // Si une notification de résumé a déjà été envoyée aujourd'hui, on ne fait rien.
         if (lastNotifDate === todayStr) {
-            console.log(`SW: Notification pour le créneau '${notifSlot}' déjà envoyée aujourd'hui.`);
+            console.log('SW: Notification de résumé déjà envoyée aujourd\'hui.');
             return;
         }
 
+        console.log('SW: Vérification des tâches...');
         const items = await idbKeyval.get('maintenanceItems_v3') || [];
         const urgentItems = items.filter(item => {
             const today = new Date(); today.setHours(0, 0, 0, 0);
             const nextDate = new Date(item.nextMaintenance); nextDate.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
-            return diffDays <= 1;
+            return diffDays <= 1; // Urgent = Aujourd'hui, demain ou en retard
         });
 
         if (urgentItems.length > 0) {
             const title = 'Rappel de tâches Upkeep';
             const body = `Vous avez ${urgentItems.length} tâche(s) urgente(s) ou en retard. Pensez à y jeter un oeil !`;
             
-            // --- MODIFIÉ : Ajout du "badge" pour l'icône de la barre de statut ---
             await self.registration.showNotification(title, {
                 body: body,
-                icon: '/Appli-gestion/icon-192.png', // Grande icône
-                badge: '/Appli-gestion/icon-96.png', // Petite icône pour la barre de statut (doit être simple)
+                icon: '/Appli-gestion/icon-192.png',
+                badge: '/Appli-gestion/icon-96.png',
                 tag: 'task-reminder'
             });
 
-            await idbKeyval.set(`lastNotifDate_${notifSlot}`, todayStr);
-            console.log(`SW: Notification envoyée pour le créneau '${notifSlot}'.`);
+            // On met à jour la date de la dernière notification pour n'en envoyer qu'une par jour.
+            await idbKeyval.set('lastNotifDate', todayStr);
+            console.log('SW: Notification de résumé envoyée.');
+        } else {
+            console.log('SW: Aucune tâche urgente trouvée.');
         }
     } catch (error) {
         console.error("SW: Erreur dans checkTasksAndNotify:", error);
